@@ -1,0 +1,19 @@
+name: macOS Runner Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - name: Report runner toolchain
+        run: |
+          set -euxo pipefail
+          uname -a
+          sw_vers
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 --version
