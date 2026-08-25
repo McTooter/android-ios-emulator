@@ -6,9 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UTM_SUBMODULE_COMMIT: 8e4de50817e76a83d6840212311627a78dd4f8b2
+
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,13 +59,30 @@ jobs:
   build-utm-milestone:
     name: Build UTM/QEMU iOS milestone
     runs-on: macos-15
+    timeout-minutes: 120
     steps:
       - name: Checkout with UTM submodule
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Select the current Xcode toolchain
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Restore UTM iOS ARM64 sysroot
+        id: cache-utm-sysroot
+        uses: actions/cache/restore@v4
+        with:
+          path: vendor/UTM/sysroot-iOS-arm64
+          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**') }}
+          restore-keys: |
+            utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-
+
       - name: Install UTM build prerequisites
+        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
         run: |
           brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake
           brew install llvm spirv-llvm-translator libxcb libxrandr
@@ -65,18 +90,41 @@ jobs:
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix gettext)/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix glib-utils)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix libgpg-error)/bin" >> "$GITHUB_PATH"
           python3 -m venv "$RUNNER_TEMP/utm-venv"
           "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six pyparsing setuptools pyyaml distlib mako
           echo "$RUNNER_TEMP/utm-venv/bin" >> "$GITHUB_PATH"
 
+      - name: Validate UTM dependency environment
+        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
+        run: |
+          set -euxo pipefail
+          command -v python3
+          python3 -c 'import six, pyparsing, setuptools, yaml, distlib, mako'
+          command -v bison
+          command -v msgfmt
+          command -v glib-mkenums
+          command -v glib-compile-resources
+          command -v gpg-error-config
+          command -v meson
+          command -v cmake
+
       - name: Build UTM ARM64 dependencies
+        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
         working-directory: vendor/UTM
         run: |
           set -o pipefail
           ./scripts/build_dependencies.sh -p ios -a arm64 > "$RUNNER_TEMP/utm-dependencies.log" 2>&1 || {
-            tail -n 240 "$RUNNER_TEMP/utm-dependencies.log"
+            tail -n 260 "$RUNNER_TEMP/utm-dependencies.log"
             exit 1
           }
+
+      - name: Save UTM iOS ARM64 sysroot cache
+        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
+        uses: actions/cache/save@v4
+        with:
+          path: vendor/UTM/sysroot-iOS-arm64
+          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**') }}
 
       - name: Build unsigned UTM iOS archive
         working-directory: vendor/UTM
@@ -89,6 +137,14 @@ jobs:
           mkdir -p "$RUNNER_TEMP/UTMPayload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/UTMPayload/"
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/UTMPayload" UTM-unsigned-payload.zip
+
+      - name: Upload UTM dependency log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UTM-dependency-log-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/utm-dependencies.log
 
       - name: Upload UTM milestone
         uses: actions/upload-artifact@v4
