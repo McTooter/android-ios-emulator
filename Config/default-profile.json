@@ -1,0 +1,21 @@
+{
+  "target": {
+    "device": "iPad Air (5th generation)",
+    "chip": "Apple M1",
+    "os": "iPadOS 17.4.1",
+    "abi": "arm64-v8a"
+  },
+  "runtime": {
+    "executionMode": "interpreter",
+    "graphicsBackend": "metalTranslation",
+    "memoryMB": 2048,
+    "cpuThreads": 4,
+    "frameRateLimit": 60,
+    "resolutionScale": 1.0
+  },
+  "notes": [
+    "The accelerated mode is only a configuration hook; the app does not enable JIT or alter entitlements.",
+    "Memory is a guest request and cannot exceed host/iPadOS limits.",
+    "A real backend must validate all values against available device resources."
+  ]
+}
