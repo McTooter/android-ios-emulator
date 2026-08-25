@@ -37,4 +37,14 @@ A Linux QEMU test with UEFI, `-cpu max`, TCG, and copy-on-write disks reached An
 
 The macOS workflow now caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. On 2026-08-25, GitHub rejected both the UTM job and a separate short macOS 14 runner probe before any step executed, with no runner name or downloadable log. This prevents a hosted archive verification at present; it does not demonstrate a successful UTM or Android build.
 
+Once a guest exposes ADB, build the original test APK and run the host-side installation/launch check:
+
+```sh
+ANDROID_HOME=/path/to/android-sdk /path/to/gradle -p test-apk :app:assembleDebug
+python3 tools/test_guest_apk.py test-apk/app/build/outputs/apk/debug/app-debug.apk \
+  --package com.mctooter.androidruntimetest --serial 127.0.0.1:5555
+```
+
+The harness waits for ADB, installs the APK, resolves its launcher activity, starts it, and checks for the package process. It fails rather than reporting success when the guest is offline or the process is absent.
+
 Do not copy proprietary Android system images or application assets into this repository without the appropriate rights. Do not alter entitlements or code-signing metadata as part of the build.
