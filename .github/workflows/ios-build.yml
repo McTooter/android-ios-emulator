@@ -60,7 +60,7 @@ jobs:
       - name: Install UTM build prerequisites
         run: |
           python3 -m venv "$RUNNER_TEMP/utm-venv"
-          "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six
+          "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six pyparsing setuptools pyyaml distlib mako
           echo "$RUNNER_TEMP/utm-venv/bin" >> "$GITHUB_PATH"
 
       - name: Build UTM ARM64 dependencies
