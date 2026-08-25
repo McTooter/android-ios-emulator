@@ -36,6 +36,15 @@ typedef struct EmulatorCoreSnapshot {
 } EmulatorCoreSnapshot;
 
 EmulatorCore *emulator_core_create(void);
+int emulator_core_boot_guest(
+    EmulatorCore *core,
+    const char *guest_manifest_path
+);
+int emulator_core_install_apk(
+    EmulatorCore *core,
+    const char *apk_path,
+    const char *package_name
+);
 void emulator_core_destroy(EmulatorCore *core);
 int emulator_core_start(
     EmulatorCore *core,

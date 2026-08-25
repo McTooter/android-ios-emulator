@@ -20,6 +20,26 @@ EmulatorCore *emulator_core_create(void) {
     return new (std::nothrow) EmulatorCore();
 }
 
+int emulator_core_boot_guest(
+    EmulatorCore *core,
+    const char *guest_manifest_path
+) {
+    if (!core || !guest_manifest_path) return -1;
+    core->status = EMULATOR_STATUS_FAILED;
+    set_message(core, "Stub only: Android guest backend is not linked");
+    return 1;
+}
+
+int emulator_core_install_apk(
+    EmulatorCore *core,
+    const char *apk_path,
+    const char *package_name
+) {
+    if (!core || !apk_path || !package_name) return -1;
+    set_message(core, "Stub only: APK installer is not linked");
+    return 1;
+}
+
 void emulator_core_destroy(EmulatorCore *core) {
     delete core;
 }
