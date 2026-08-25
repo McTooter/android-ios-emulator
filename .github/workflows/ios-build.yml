@@ -58,7 +58,10 @@ jobs:
           submodules: recursive
 
       - name: Install UTM build prerequisites
-        run: python3 -m pip install --user six
+        run: |
+          python3 -m venv "$RUNNER_TEMP/utm-venv"
+          "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six
+          echo "$RUNNER_TEMP/utm-venv/bin" >> "$GITHUB_PATH"
 
       - name: Build UTM ARM64 dependencies
         working-directory: vendor/UTM
