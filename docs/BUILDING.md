@@ -25,4 +25,14 @@ The current Swift UI is deliberately usable before the core exists: it imports `
 4. Add guest networking, audio, sensors, graphics translation, and Android framework services incrementally.
 5. Benchmark interpreter and accelerated configurations on the physical iPad.
 
+The guest manifest tooling also includes a deterministic, non-executing QEMU argument generator:
+
+```sh
+python3 tools/qemu_args.py /path/to/guest/manifest.json --memory-mib 4096 --cpus 4 --acceleration tcg-threaded --format shell
+```
+
+It only emits arguments and never launches QEMU, downloads images, enables JIT, changes entitlements, or bypasses iPadOS security controls. Its current `virt` layout is experimental until a real LineageOS `virtio_arm64only` or AOSP-derived ARM64 guest is built and boot-tested.
+
+The macOS workflow now caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. On 2026-08-25, GitHub rejected both the UTM job and a separate short macOS 14 runner probe before any step executed, with no runner name or downloadable log. This prevents a hosted archive verification at present; it does not demonstrate a successful UTM or Android build.
+
 Do not copy proprietary Android system images or application assets into this repository without the appropriate rights. Do not alter entitlements or code-signing metadata as part of the build.

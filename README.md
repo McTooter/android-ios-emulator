@@ -46,6 +46,16 @@ python3 tools/validate_guest.py /path/to/guest/manifest.json
 
 The validator checks manifest structure, architecture, machine type, and that all named files remain inside the guest directory. It does not prove that an image is bootable and does not execute any guest code.
 
+For a validated bundle, `tools/qemu_args.py` emits a deterministic, non-executing QEMU ARM64 argument list. It is an integration aid only: it does not launch QEMU, download guest images, enable JIT, change entitlements, or bypass iPadOS security controls.
+
+```sh
+python3 tools/qemu_args.py /path/to/guest/manifest.json --memory-mib 4096 --cpus 4 --acceleration tcg-threaded --format shell
+```
+
+The generator currently models a QEMU `virt` machine with a kernel, initrd, three raw virtio block devices, optional virtio GPU, user-mode virtio networking, and explicit TCG choices. The image layout and kernel command line remain experimental until a real LineageOS `virtio_arm64only` or AOSP-derived guest is built and boot-tested.
+
+The repository’s macOS workflow now caches the exact `sysroot-iOS-arm64` output and retains the dependency log. As of 2026-08-25, GitHub rejects both the UTM build and a separate ten-second macOS 14 runner probe before any step starts, with no runner name or downloadable log. This is a hosted-runner allocation limitation, not evidence that UTM or Android has built successfully; a Mac with Xcode remains the reliable path for the next archive test.
+
 ## Next engineering milestones
 
 1. Replace `EmulatorCore` with an approved, buildable ARM64 runtime backend.
