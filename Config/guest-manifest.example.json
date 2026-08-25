@@ -6,6 +6,7 @@
   "machine": "virt",
   "bootMode": "uefi",
   "firmware": "Data/efi_vars.fd",
+  "firmwareFormat": "qcow2",
   "disks": [
     {"id": "vda", "path": "Data/vda.qcow2", "format": "qcow2"},
     {"id": "vdb", "path": "Data/vdb.qcow2", "format": "qcow2"}

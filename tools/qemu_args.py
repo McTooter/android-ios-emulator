@@ -36,11 +36,17 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
     args = [
         "qemu-system-aarch64",
         "-M", "virt",
-        "-cpu", "cortex-a72",
+        "-cpu", "max,pauth-impdef=on",
         "-smp", str(cpus),
         "-m", f"{memory_mib}M",
         "-display", "none",
         "-serial", "stdio",
+        "-device", "usb-ehci,id=usb-bus",
+        "-device", "usb-tablet,bus=usb-bus.0",
+        "-device", "usb-mouse,bus=usb-bus.0",
+        "-device", "usb-kbd,bus=usb-bus.0",
+        "-device", "virtio-serial",
+        "-device", "virtio-rng-pci",
     ]
 
     boot_mode = data.get("bootMode", "kernel-initrd")
@@ -62,7 +68,8 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
         firmware = bundle_file(bundle_dir, data["firmware"])
         if data.get("firmwareCode"):
             args.extend(["-drive", f"if=pflash,format=raw,readonly=on,unit=0,file={bundle_file(bundle_dir, data['firmwareCode'])}"])
-        args.extend(["-drive", f"if=pflash,format=raw,unit=1,file={firmware}"])
+        firmware_format = data.get("firmwareFormat", "raw")
+        args.extend(["-drive", f"if=pflash,format={firmware_format},unit=1,file={firmware}"])
         disks = data["disks"]
     else:
         raise ValueError(f"unsupported boot mode: {boot_mode}")
@@ -85,9 +92,9 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
         args.extend(["-netdev", "user,id=android-net", "-device", "virtio-net-pci,netdev=android-net"])
 
     if acceleration == "tcg-threaded":
-        args.extend(["-accel", "tcg,thread=multi"])
+        args.extend(["-accel", "tcg,tb-size=1024,thread=multi"])
     elif acceleration == "none":
-        args.extend(["-accel", "tcg,thread=single"])
+        args.extend(["-accel", "tcg,tb-size=1024,thread=single"])
     elif acceleration != "default":
         raise ValueError(f"unsupported acceleration mode: {acceleration}")
 

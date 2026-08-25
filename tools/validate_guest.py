@@ -57,6 +57,8 @@ def validate(manifest_path: Path) -> list[str]:
             check_file(key, data.get(key))
     elif boot_mode == "uefi":
         check_file("firmware", data.get("firmware"))
+        if data.get("firmwareFormat", "raw") not in ("raw", "qcow2"):
+            errors.append("firmwareFormat must be raw or qcow2")
         firmware_code = data.get("firmwareCode")
         if firmware_code is not None:
             check_file("firmwareCode", firmware_code)
