@@ -36,6 +36,16 @@ The private GitHub repository is available at https://github.com/McTooter/androi
 
 Run `scripts/build-utm-ios.sh` on a Mac with Xcode to perform the same UTM build locally. The resulting archive or payload must be signed with the user’s own Apple development identity before installation. The repository’s custom SwiftUI target remains the multi-APK library shell that will later host the Android-specific guest integration.
 
+## Android guest input contract
+
+The future Android boot backend accepts a local guest directory described by `Config/guest-manifest.example.json`. The initial contract expects an ARM64 `virt` machine and named kernel, initrd, system, vendor, and userdata images. Validate a supplied bundle before booting with:
+
+```sh
+python3 tools/validate_guest.py /path/to/guest/manifest.json
+```
+
+The validator checks manifest structure, architecture, machine type, and that all named files remain inside the guest directory. It does not prove that an image is bootable and does not execute any guest code.
+
 ## Next engineering milestones
 
 1. Replace `EmulatorCore` with an approved, buildable ARM64 runtime backend.
