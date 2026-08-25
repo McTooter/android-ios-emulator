@@ -21,3 +21,9 @@ LineageOS documents building an image for a libvirt QEMU virtual machine and not
 AOSP documents Cuttlefish as a configurable virtual Android device that runs locally on Linux x86 and ARM64 machines or remotely through cloud offerings. Cuttlefish is a useful guest/image reference, but its documented host assumptions are Linux-based and it is not a drop-in iPadOS component: https://source.android.com/docs/devices/cuttlefish
 
 The project should therefore accept a user-supplied, legally obtained ARM64 guest bundle rather than downloading proprietary system images or pretending that an ordinary Android emulator image can boot unchanged on iPadOS. The guest configuration layer can validate required files, architecture, and image metadata before invoking UTM/QEMU.
+
+## UTM CI Build Findings
+
+UTM’s upstream `scripts/build_dependencies.sh` checks for Python modules `six`, `pyparsing`, `setuptools`, `yaml`, `distlib`, and `mako`; Homebrew tools including bison, pkg-config, gettext, glib-utils, libgpg-error, nasm, make, meson, cmake, llvm, spirv-llvm-translator, libxcb, and libxrandr; and Apple command-line tools such as xcrun, otool, and install_name_tool. Homebrew’s bison is keg-only on the GitHub macOS runner, so its bin directory must be placed ahead of the system path.
+
+The custom Swift/XcodeGen iPadOS target has passed in GitHub Actions. UTM’s ARM64 sysroot build is long-running and has required bounded logging because its verbose symlink output can exceed practical CI log limits. The current workflow run is being monitored at https://github.com/McTooter/android-ios-emulator/actions/runs/32879959382.
