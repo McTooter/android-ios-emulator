@@ -1,0 +1,4 @@
+[submodule "vendor/UTM"]
+	path = vendor/UTM
+	url = https://github.com/utmapp/UTM.git
+	branch = main
