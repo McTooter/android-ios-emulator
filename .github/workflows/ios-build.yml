@@ -71,7 +71,12 @@ jobs:
 
       - name: Build UTM ARM64 dependencies
         working-directory: vendor/UTM
-        run: ./scripts/build_dependencies.sh -p ios -a arm64
+        run: |
+          set -o pipefail
+          ./scripts/build_dependencies.sh -p ios -a arm64 > "$RUNNER_TEMP/utm-dependencies.log" 2>&1 || {
+            tail -n 240 "$RUNNER_TEMP/utm-dependencies.log"
+            exit 1
+          }
 
       - name: Build unsigned UTM iOS archive
         working-directory: vendor/UTM
