@@ -57,6 +57,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install UTM build prerequisites
+        run: python3 -m pip install --user six
+
       - name: Build UTM ARM64 dependencies
         working-directory: vendor/UTM
         run: ./scripts/build_dependencies.sh -p ios -a arm64
