@@ -59,7 +59,7 @@ jobs:
 
       - name: Install UTM build prerequisites
         run: |
-          brew install llvm spirv-llvm-translator libxcb libxrandr meson cmake gettext glib-utils libgpg-error
+          brew install llvm spirv-llvm-translator libxcb libxrandr meson cmake gettext glib-utils libgpg-error bison
           python3 -m venv "$RUNNER_TEMP/utm-venv"
           "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six pyparsing setuptools pyyaml distlib mako
           echo "$RUNNER_TEMP/utm-venv/bin" >> "$GITHUB_PATH"
