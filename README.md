@@ -30,6 +30,12 @@ The project does not modify entitlements, implement code-signing bypasses, defea
 
 A real iPadOS build requires macOS, Xcode, an Apple signing identity, and a connected or registered iPad. The Linux sandbox used to prepare this scaffold does not include Xcode or Apple SDKs, so compilation and device testing must be performed on a Mac.
 
+## Repository and first functional milestone
+
+The private GitHub repository is available at https://github.com/McTooter/android-ios-emulator. It tracks UTM as an upstream submodule under `vendor/UTM` and includes a macOS GitHub Actions workflow. The `build-utm-milestone` job follows UTM’s documented dependency and iOS archive build sequence and uploads an unsigned UTM/QEMU iOS payload. This is the first functional emulator milestone; it is not yet the Android APK runtime.
+
+Run `scripts/build-utm-ios.sh` on a Mac with Xcode to perform the same UTM build locally. The resulting archive or payload must be signed with the user’s own Apple development identity before installation. The repository’s custom SwiftUI target remains the multi-APK library shell that will later host the Android-specific guest integration.
+
 ## Next engineering milestones
 
 1. Replace `EmulatorCore` with an approved, buildable ARM64 runtime backend.
