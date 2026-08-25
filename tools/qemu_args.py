@@ -89,7 +89,12 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
 
     network = data.get("network", {})
     if network.get("device") == "virtio-net" and network.get("mode", "user") == "user":
-        args.extend(["-netdev", "user,id=android-net", "-device", "virtio-net-pci,netdev=android-net"])
+        args.extend([
+            "-netdev",
+            "user,id=android-net,hostfwd=tcp:127.0.0.1:5555-:5555,hostfwd=tcp:127.0.0.1:5554-:5554",
+            "-device",
+            "virtio-net-pci,netdev=android-net",
+        ])
 
     if acceleration == "tcg-threaded":
         args.extend(["-accel", "tcg,tb-size=1024,thread=multi"])
