@@ -52,7 +52,9 @@ For a validated bundle, `tools/qemu_args.py` emits a deterministic, non-executin
 python3 tools/qemu_args.py /path/to/guest/manifest.json --memory-mib 4096 --cpus 4 --acceleration tcg-threaded --format shell
 ```
 
-The generator currently models a QEMU `virt` machine with a kernel, initrd, three raw virtio block devices, optional virtio GPU, user-mode virtio networking, and explicit TCG choices. The image layout and kernel command line remain experimental until a real LineageOS `virtio_arm64only` or AOSP-derived guest is built and boot-tested.
+The generator models either the legacy kernel/initrd form or the real UEFI/qcow2 UTM bundle form, with a QEMU `virt` machine, virtio block devices, optional virtio GPU, user-mode virtio networking, and explicit TCG choices. The project’s current reference guest is the public LineageOS `virtio_arm64only` UTM build from [android-lineage-qemu](https://github.com/jqssun/android-lineage-qemu), kept outside this repository and accepted only as a locally authorized input. Its official UTM guide requires ANGLE (OpenGL) for the Android UI; ANGLE (Metal) can leave the UI invisible after boot.
+
+The guest has now been statically validated and partially boot-tested under Linux QEMU: with UEFI, `-cpu max`, and copy-on-write disks it reached Android framework initialization and boot animation without the earlier kernel panic. ADB remained offline before the bounded test ended, so no package-manager install or APK launch has been demonstrated.
 
 The repository’s macOS workflow now caches the exact `sysroot-iOS-arm64` output and retains the dependency log. As of 2026-08-25, GitHub rejects both the UTM build and a separate ten-second macOS 14 runner probe before any step starts, with no runner name or downloadable log. This is a hosted-runner allocation limitation, not evidence that UTM or Android has built successfully; a Mac with Xcode remains the reliable path for the next archive test.
 

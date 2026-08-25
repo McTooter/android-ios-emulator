@@ -41,24 +41,39 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
         "-m", f"{memory_mib}M",
         "-display", "none",
         "-serial", "stdio",
-        "-kernel", bundle_file(bundle_dir, data["kernel"]),
-        "-initrd", bundle_file(bundle_dir, data["initrd"]),
-        "-append", data.get(
-            "kernelArgs",
-            "console=ttyAMA0 earlycon=pl011,mmio32,0x09000000 rootwait rw",
-        ),
     ]
 
-    for image_key, drive_id in (
-        ("systemImage", "android-system"),
-        ("vendorImage", "android-vendor"),
-        ("userdataImage", "android-userdata"),
-    ):
+    boot_mode = data.get("bootMode", "kernel-initrd")
+    if boot_mode == "kernel-initrd":
+        args.extend([
+            "-kernel", bundle_file(bundle_dir, data["kernel"]),
+            "-initrd", bundle_file(bundle_dir, data["initrd"]),
+            "-append", data.get(
+                "kernelArgs",
+                "console=ttyAMA0 earlycon=pl011,mmio32,0x09000000 rootwait rw",
+            ),
+        ])
+        disks = [
+            {"id": "android-system", "path": data["systemImage"], "format": "raw"},
+            {"id": "android-vendor", "path": data["vendorImage"], "format": "raw"},
+            {"id": "android-userdata", "path": data["userdataImage"], "format": "raw"},
+        ]
+    elif boot_mode == "uefi":
+        firmware = bundle_file(bundle_dir, data["firmware"])
+        if data.get("firmwareCode"):
+            args.extend(["-drive", f"if=pflash,format=raw,readonly=on,unit=0,file={bundle_file(bundle_dir, data['firmwareCode'])}"])
+        args.extend(["-drive", f"if=pflash,format=raw,unit=1,file={firmware}"])
+        disks = data["disks"]
+    else:
+        raise ValueError(f"unsupported boot mode: {boot_mode}")
+
+    for disk in disks:
+        disk_id = disk["id"]
         args.extend([
             "-drive",
-            f"if=none,format=raw,file={bundle_file(bundle_dir, data[image_key])},id={drive_id}",
+            f"if=none,format={disk.get('format', 'raw')},file={bundle_file(bundle_dir, disk['path'])},id={disk_id}",
             "-device",
-            f"virtio-blk-pci,drive={drive_id}",
+            f"virtio-blk-pci,drive={disk_id}",
         ])
 
     graphics = data.get("graphics", {})

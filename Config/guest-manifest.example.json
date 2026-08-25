@@ -1,18 +1,19 @@
 {
-  "formatVersion": 1,
-  "guestName": "Android ARM64 test guest",
+  "formatVersion": 2,
+  "guestName": "LineageOS ARM64-only UTM guest",
   "androidApiLevel": 35,
   "architecture": "arm64-v8a",
   "machine": "virt",
-  "kernel": "Image",
-  "initrd": "initrd.img",
-  "systemImage": "system.img",
-  "vendorImage": "vendor.img",
-  "userdataImage": "userdata.img",
+  "bootMode": "uefi",
+  "firmware": "Data/efi_vars.fd",
+  "disks": [
+    {"id": "vda", "path": "Data/vda.qcow2", "format": "qcow2"},
+    {"id": "vdb", "path": "Data/vdb.qcow2", "format": "qcow2"}
+  ],
   "verifiedBoot": false,
   "graphics": {
     "device": "virtio-gpu",
-    "renderer": "metal-translation"
+    "renderer": "angle-opengl"
   },
   "network": {
     "device": "virtio-net",

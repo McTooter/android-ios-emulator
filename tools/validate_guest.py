@@ -8,17 +8,15 @@ import json
 from pathlib import Path
 import sys
 
-REQUIRED_KEYS = (
+BASE_REQUIRED_KEYS = (
     "formatVersion",
     "guestName",
     "androidApiLevel",
     "architecture",
     "machine",
-    "kernel",
-    "systemImage",
-    "vendorImage",
-    "userdataImage",
 )
+
+LEGACY_KERNEL_KEYS = ("kernel", "initrd", "systemImage", "vendorImage", "userdataImage")
 
 
 def validate(manifest_path: Path) -> list[str]:
@@ -30,7 +28,7 @@ def validate(manifest_path: Path) -> list[str]:
     except json.JSONDecodeError as exc:
         return [f"invalid JSON: {exc}"]
 
-    for key in REQUIRED_KEYS:
+    for key in BASE_REQUIRED_KEYS:
         if key not in data:
             errors.append(f"missing manifest key: {key}")
 
@@ -41,17 +39,49 @@ def validate(manifest_path: Path) -> list[str]:
     if not isinstance(data.get("androidApiLevel"), int):
         errors.append("androidApiLevel must be an integer")
 
-    bundle_dir = manifest_path.parent
-    for key in ("kernel", "initrd", "systemImage", "vendorImage", "userdataImage"):
-        value = data.get(key)
+    bundle_dir = manifest_path.parent.resolve()
+
+    def check_file(label: str, value: object) -> None:
         if not isinstance(value, str) or not value:
-            errors.append(f"{key} must name a file in the guest bundle")
-            continue
+            errors.append(f"{label} must name a file in the guest bundle")
+            return
         candidate = (bundle_dir / value).resolve()
-        if bundle_dir.resolve() not in candidate.parents:
-            errors.append(f"{key} must remain inside the guest bundle")
+        if bundle_dir not in candidate.parents:
+            errors.append(f"{label} must remain inside the guest bundle")
         elif not candidate.is_file():
-            errors.append(f"missing guest file for {key}: {value}")
+            errors.append(f"missing guest file for {label}: {value}")
+
+    boot_mode = data.get("bootMode", "kernel-initrd")
+    if boot_mode == "kernel-initrd":
+        for key in LEGACY_KERNEL_KEYS:
+            check_file(key, data.get(key))
+    elif boot_mode == "uefi":
+        check_file("firmware", data.get("firmware"))
+        firmware_code = data.get("firmwareCode")
+        if firmware_code is not None:
+            check_file("firmwareCode", firmware_code)
+        disks = data.get("disks")
+        if not isinstance(disks, list) or not disks:
+            errors.append("disks must be a non-empty list for UEFI guests")
+        else:
+            seen_ids: set[str] = set()
+            for index, disk in enumerate(disks):
+                if not isinstance(disk, dict):
+                    errors.append(f"disks[{index}] must be an object")
+                    continue
+                disk_id = disk.get("id")
+                if not isinstance(disk_id, str) or not disk_id:
+                    errors.append(f"disks[{index}].id must be a non-empty string")
+                elif disk_id in seen_ids:
+                    errors.append(f"duplicate disk id: {disk_id}")
+                else:
+                    seen_ids.add(disk_id)
+                disk_format = disk.get("format", "qcow2")
+                if disk_format not in ("raw", "qcow2"):
+                    errors.append(f"disks[{index}].format must be raw or qcow2")
+                check_file(f"disks[{index}].path", disk.get("path"))
+    else:
+        errors.append("bootMode must be kernel-initrd or uefi")
 
     return errors
 
