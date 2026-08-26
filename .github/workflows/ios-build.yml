@@ -70,6 +70,9 @@ jobs:
 
       - name: Select the current Xcode toolchain
         run: |
+          if [ -d /Applications/Xcode_26.0.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+          fi
           xcode-select -p
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
