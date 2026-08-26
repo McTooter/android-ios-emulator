@@ -87,6 +87,38 @@ final class GuestStore: ObservableObject {
         statusMessage = "No external Android guest selected"
     }
 
+    /// Prepare an isolated writable guest package for one APK profile. The first
+    /// implementation uses a full package copy as a correctness-first fallback;
+    /// it never mutates the user-selected base bundle. QEMU backing-file overlays
+    /// can replace this copy path after the on-device image-tool contract is tested.
+    func profileGuestURL(for profileID: UUID) throws -> URL {
+        guard let baseURL = guestURL else {
+            throw GuestConfigurationError.inaccessibleGuest
+        }
+        let support = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let profiles = support.appendingPathComponent("AndroidRuntime/Profiles", isDirectory: true)
+        try FileManager.default.createDirectory(at: profiles, withIntermediateDirectories: true)
+        let destination = profiles.appendingPathComponent(profileID.uuidString).appendingPathExtension("utm")
+        if FileManager.default.fileExists(atPath: destination.path) {
+            _ = try Self.validateBundle(at: destination)
+            return destination
+        }
+        let scoped = baseURL.startAccessingSecurityScopedResource()
+        defer {
+            if scoped {
+                baseURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        try FileManager.default.copyItem(at: baseURL, to: destination)
+        _ = try Self.validateBundle(at: destination)
+        return destination
+    }
+
     private func restore() {
         guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else {
             return

@@ -57,7 +57,7 @@ final class RuntimeController: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let session = try self.core.makeSession(profile: package.profile)
+                let session = try self.core.makeSession(profile: package.profile, profileID: package.id)
                 self.activeSession = session
                 try await session.start()
                 self.states[package.id] = .running
@@ -171,10 +171,8 @@ final class UTMCoreAdapter {
         self.guestStore = guestStore
     }
 
-    func makeSession(profile: RuntimeProfile) throws -> UTMRuntimeSession {
-        guard let guestURL = guestStore.guestURL else {
-            throw GuestConfigurationError.inaccessibleGuest
-        }
+    func makeSession(profile: RuntimeProfile, profileID: UUID) throws -> UTMRuntimeSession {
+        let guestURL = try guestStore.profileGuestURL(for: profileID)
         return try UTMRuntimeSession(guestURL: guestURL, profile: profile)
     }
 }
