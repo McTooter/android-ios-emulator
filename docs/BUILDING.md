@@ -13,17 +13,19 @@ cmake --build build --parallel
 
 ## iPadOS build
 
-A real iPadOS application must be built on a Mac with Xcode and the iPadOS SDK. Create an iOS App target using SwiftUI, add the files in `iPadApp/`, add `Core/EmulatorCore.h` as a bridging header, and add `Core/EmulatorCore.cpp` to the target or link the compiled static library. The target should be configured for arm64 iOS devices and tested on the iPad Air (5th generation).
+A real iPadOS application must be built on a Mac with Xcode and the iPadOS SDK. The standalone `project.yml` target remains a shell-only build. The integration path now applies `tools/patch_utm_androidruntime.py` to UTM’s pinned iOS target in CI, adds the custom SwiftUI/library files to the same module, disables UTM’s JIT compilation condition for this project, and keeps UTM’s QEMU frameworks, resources, package dependencies, and embed phases.
 
-The current Swift UI is deliberately usable before the core exists: it imports `.apk` files into the app’s private storage, creates catalog records, stores per-app settings, and displays explicit “Android runtime core is not linked yet” status when Launch is pressed.
+The shell imports `.apk` files into private storage and accepts a user-supplied `.utm` guest through the Files picker. The adapted UTM target uses `UTMQemuVirtualMachine`, `VMSessionState`, and `VMDisplayHostedView` for lifecycle and live display. The external guest remains outside the repository. A profile currently receives a correctness-first full package copy; qcow2 backing overlays are a later optimization after on-device image tooling is verified.
 
 ## Backend integration order
 
-1. Add a licensed or otherwise compatible QEMU/AOSP backend as a separate build target.
-2. Boot a minimal ARM64 Android guest from a local image and expose framebuffer, input, storage, and lifecycle callbacks through `EmulatorCore.h`.
-3. Replace placeholder package names by parsing each APK’s manifest and installing it through the guest package manager.
-4. Add guest networking, audio, sensors, graphics translation, and Android framework services incrementally.
-5. Benchmark interpreter and accelerated configurations on the physical iPad.
+1. Build the single adapted AndroidRuntime/UTM iOS target and verify the archive contains `AndroidRuntime.app`, `qemu-aarch64-softmmu.framework`, and the QEMU resource bundle.
+2. Import a lawfully obtained ARM64/UEFI/`virt` LineageOS `.utm` guest and boot it without mutating the shared base guest.
+3. Confirm a visible Android display and touch/keyboard input through UTM’s existing iOS display controller.
+4. Add an in-process ADB transport over the guest’s configured forward; host-side `adb` is only a diagnostic tool and is not assumed to exist inside iPadOS.
+5. Parse each APK’s real manifest package/activity, install it through ADB/package-manager commands, launch it, and verify its process.
+6. Verify two profile copies have independent writable state, then replace full copies with tested qcow2 backing overlays where supported.
+7. Benchmark interpreter and externally configured acceleration modes on the physical iPad.
 
 The guest manifest tooling also includes a deterministic, non-executing QEMU argument generator:
 
@@ -37,7 +39,7 @@ It only emits arguments and never launches QEMU, downloads images, enables JIT, 
 
 A Linux QEMU test with UEFI, `-cpu max`, TCG, and copy-on-write disks reached Android framework initialization and boot animation without the earlier `virt_wifi.ko` panic. The forwarded ADB endpoint stayed offline before cleanup, so this is not yet a package-install or APK-launch test.
 
-The macOS workflow caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. Public hosted macOS runners do execute the jobs, and the custom SwiftUI shell archive job succeeds. The UTM dependency job has reached real Mesa/QEMU configuration but is long-running; successive bounded runs exposed concrete Meson, GLib, QEMU, libclc, and SPIRV-Tools issues. The latest run was canceled after a hard time window and did not produce a UTM archive. No paid service is required for the local checks below.
+The macOS workflow caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. Run `32960303538` proved that the generic UTM/QEMU archive route succeeds. The newer integrated workflow is committed at `082b1ee`, but its push-triggered runs `32985105287` and `32985506499` failed with runner `startup_failure` before creating jobs, while manual run `32985087337` remained queued. This is an infrastructure-startup blocker, not evidence that the integrated source compiles. No paid service is required for the local checks below.
 
 Run the no-cost local verification wrapper from the repository root. It runs the native checks, builds and inspects the original test APK when Gradle and an Android SDK are available, and accepts an optional guest manifest. It never launches a guest or changes iPadOS security settings:
 

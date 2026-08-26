@@ -4,7 +4,7 @@ A research scaffold for a developer-signed iPadOS app that presents a library of
 
 ## Current status
 
-This repository contains the **multi-app library and runtime integration boundary** plus guest-validation tooling. It is not currently capable of running APKs on iPadOS: the iPad adapter is still a transparent stub, the UTM/QEMU iOS archive has not been verified, and Android guest ADB/APK execution remains unproven. The repository does not include guest images or proprietary applications.
+This repository contains the **multi-app library, external guest importer, profile-isolation model, and runtime integration boundary** plus guest-validation tooling. The adapted UTM target is now wired in source to `UTMQemuVirtualMachine`, `VMSessionState`, and UTM’s iOS display controller, but the combined archive has not yet been compiled because recent GitHub macOS runner starts failed before jobs were created. Android guest ADB/APK execution remains unproven. The repository does not include guest images or proprietary applications.
 
 The scaffold is designed around the architecture used by projects such as [UTM](https://github.com/utmapp/UTM): a native iPadOS shell controls a separate emulator core through a narrow interface. The shell can import APK files, display metadata, maintain per-app profiles, and report runtime state. The core interface is intentionally replaceable so a licensed QEMU/AOSP-based implementation can be integrated later.
 
@@ -17,10 +17,11 @@ The initial target is an iPad Air (5th generation) running iPadOS 17.4.1. Apple 
 | Component | Responsibility | Initial implementation |
 | --- | --- | --- |
 | `iPadApp` | SwiftUI library, APK import, profiles, lifecycle controls | Implemented scaffold |
-| `Core` | Stable C ABI for runtime start/stop/status and APK mounting | Implemented stub |
-| Android guest/runtime | ART, system services, package manager, Linux device model | Future integration |
-| Graphics bridge | Android GLES/Vulkan surface to Metal-backed rendering | Future integration |
-| Profile store | Per-package storage, settings, save-state metadata | Implemented local model |
+| `Core` | Stable C ABI for portable lifecycle/status boundary | Implemented stub; UIKit/Metal stay outside the ABI |
+| UTM/QEMU session | ARM64 QEMU VM lifecycle, SPICE display/input, UEFI/qcow2 guest | Source-level adapted target; archive unverified |
+| Android guest/runtime | ART, system services, package manager, Linux device model | User-supplied LineageOS `.utm`; boot/APK gates pending |
+| Graphics bridge | UTM `VMDisplayHostedView` and Metal-backed rendering | Source-level bridge; device test pending |
+| Profile store | Per-package storage, settings, guest package preparation | Implemented full-copy isolation fallback |
 
 ## Safe scope
 
@@ -32,7 +33,7 @@ A real iPadOS build requires macOS, Xcode, an Apple signing identity, and a conn
 
 ## Repository and first functional milestone
 
-The public GitHub repository is available at https://github.com/McTooter/android-ios-emulator. It tracks UTM as an upstream submodule under `vendor/UTM` and includes a macOS GitHub Actions workflow. The custom shell build job succeeds and produces an unsigned shell payload; the separate UTM dependency/archive job remains unverified. The shell payload is not a generic UTM IPA and neither artifact should be called a working Android APK runtime.
+The public GitHub repository is available at https://github.com/McTooter/android-ios-emulator. It tracks UTM as an upstream submodule under `vendor/UTM` and includes a macOS GitHub Actions workflow. Run `32960303538` proved the separate shell and generic UTM artifacts; commits `50a38be` and `082b1ee` add the adapted single-target integration and profile guest preparation. The integrated target still needs a successful macOS runner start and compile. No artifact should be called a working Android APK runtime until guest boot, ADB, install, launch, and device checks pass.
 
 Run `scripts/build-utm-ios.sh` on a Mac with Xcode to perform the same UTM build locally. The resulting archive or payload must be signed with the user’s own Apple development identity before installation. The repository’s custom SwiftUI target remains the multi-APK library shell that will later host the Android-specific guest integration.
 
@@ -56,12 +57,12 @@ The generator models either the legacy kernel/initrd form or the real UEFI/qcow2
 
 The guest has now been statically validated and partially boot-tested under Linux QEMU: with UEFI, `-cpu max`, and copy-on-write disks it reached Android framework initialization and boot animation without the earlier kernel panic. ADB remained offline before the bounded test ended, so no package-manager install or APK launch has been demonstrated.
 
-The macOS workflow caches the exact `sysroot-iOS-arm64` output and retains dependency logs on failure. Public hosted macOS runners do execute the jobs, and the custom shell build succeeds. The UTM dependency build has reached real Mesa/QEMU configuration but remains long-running and has successively exposed concrete dependency/configuration issues; the latest run was canceled after a bounded window rather than being left unattended. A Mac with Xcode remains the most predictable path for a complete UTM archive build, but the user currently has no Mac.
+The macOS workflow caches the exact `sysroot-iOS-arm64` output and retains dependency logs on failure. The generic UTM archive succeeded in run `32960303538`, but the integrated workflow runs `32985105287` and `32985506499` ended with runner `startup_failure` before compilation; manual run `32985087337` remained queued. A Mac with Xcode remains the fallback for compiling the adapted target if hosted macOS runners remain unavailable, but the user currently has no Mac.
 
 ## Next engineering milestones
 
-1. Replace `EmulatorCore` with an approved, buildable ARM64 runtime backend.
-2. Boot a minimal Android guest with a known-good ARM64 kernel and system image.
-3. Add APK installation through Android’s package manager and validate a simple open-source test APK.
-4. Add Metal-backed display output, touch/mouse/keyboard input, audio, networking, and per-app data isolation.
-5. Benchmark interpreter and accelerated configurations on the M1 iPad and document app compatibility.
+1. Obtain a macOS runner start and compile the one adapted AndroidRuntime/UTM target.
+2. Import a lawful ARM64/UEFI/`virt` LineageOS `.utm` guest and verify visible display/input.
+3. Add an in-process ADB transport over the guest forward, parse real APK manifests, and install/launch the smoke APK.
+4. Replace the correctness-first full guest copies with tested qcow2 backing overlays where supported.
+5. Benchmark interpreter and externally configured acceleration modes on the M1 iPad and document app compatibility.
