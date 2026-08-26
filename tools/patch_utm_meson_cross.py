@@ -23,13 +23,17 @@ from pathlib import Path
 
 configure = Path(__import__('sys').argv[1])
 text = configure.read_text(encoding='utf-8')
-marker = '  echo \"[binaries]\" >> $cross\\n'
+marker = '  echo "[binaries]" >> $cross\n'
 wrapper = \"  echo \\\"exe_wrapper = ['/bin/sh', '-c', 'printf 0']\\\" >> $cross\\n\"
+properties = '  echo "[properties]" >> $cross\\n'
+needs_wrapper = \"  echo \\\"needs_exe_wrapper = true\\\" >> $cross\\n\"
 if wrapper not in text:
-    if marker not in text:
+    if marker not in text or properties not in text:
         raise SystemExit(f'QEMU Meson binaries marker not found: {configure}')
+    text = text.replace(properties, properties + needs_wrapper, 1)
     configure.write_text(text.replace(marker, marker + wrapper, 1), encoding='utf-8')
 PY
+            grep -n -F "exe_wrapper = ['/bin/sh', '-c', 'printf 0']" configure
         fi
 """
 
