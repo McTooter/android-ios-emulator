@@ -58,6 +58,12 @@ struct ContentView: View {
                     package: package,
                     state: runtime.state(for: package),
                     onUpdate: { store.update($0) },
+                    onApplyPreset: { preset in
+                        var updated = $0
+                        updated.profile.apply(preset)
+                        store.update(updated)
+                    },
+                    capabilities: runtime.capabilities,
                     onLaunch: { runtime.launch(package) },
                     onPause: { runtime.pause(package) },
                     onStop: { runtime.stop(package) }
@@ -159,6 +165,8 @@ private struct PackageDetailView: View {
     @State private var package: AndroidPackage
     let state: RuntimeState
     let onUpdate: (AndroidPackage) -> Void
+    let onApplyPreset: (AndroidPackage) -> Void
+    let capabilities: RuntimeCapabilities
     let onLaunch: () -> Void
     let onPause: () -> Void
     let onStop: () -> Void
@@ -167,6 +175,8 @@ private struct PackageDetailView: View {
         package: AndroidPackage,
         state: RuntimeState,
         onUpdate: @escaping (AndroidPackage) -> Void,
+        onApplyPreset: @escaping (AndroidPackage) -> Void,
+        capabilities: RuntimeCapabilities,
         onLaunch: @escaping () -> Void,
         onPause: @escaping () -> Void,
         onStop: @escaping () -> Void
@@ -174,6 +184,8 @@ private struct PackageDetailView: View {
         _package = State(initialValue: package)
         self.state = state
         self.onUpdate = onUpdate
+        self.onApplyPreset = onApplyPreset
+        self.capabilities = capabilities
         self.onLaunch = onLaunch
         self.onPause = onPause
         self.onStop = onStop
@@ -189,7 +201,28 @@ private struct PackageDetailView: View {
                 LabeledContent("Runtime", value: state.title)
             }
 
+            Section("External capabilities") {
+                LabeledContent("JIT", value: capabilities.jit.rawValue)
+                LabeledContent("Memory entitlement", value: capabilities.memoryEntitlement.rawValue)
+                Text(capabilities.note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Runtime controls") {
+                Picker("Performance profile", selection: Binding(
+                    get: { package.profile.performancePreset },
+                    set: { preset in
+                        guard preset != .custom else { return }
+                        package.profile.apply(preset)
+                        onApplyPreset(package)
+                    }
+                )) {
+                    ForEach(PerformancePreset.allCases) { preset in
+                        Text(preset.rawValue).tag(preset)
+                    }
+                }
+
                 Picker("Execution mode", selection: $package.profile.executionMode) {
                     ForEach(RuntimeProfile.ExecutionMode.allCases) { mode in
                         Text(mode.rawValue).tag(mode)
@@ -200,7 +233,7 @@ private struct PackageDetailView: View {
                         Text(backend.rawValue).tag(backend)
                     }
                 }
-                Stepper("Memory: \(package.profile.memoryMB) MB", value: $package.profile.memoryMB, in: 512...6144, step: 256)
+                Stepper("Memory: \(package.profile.memoryMB) MB", value: $package.profile.memoryMB, in: 512...max(512, capabilities.maxGuestMemoryMB), step: 256)
                 Stepper("CPU threads: \(package.profile.cpuThreads)", value: $package.profile.cpuThreads, in: 1...8)
                 Stepper("Frame limit: \(package.profile.frameRateLimit) FPS", value: $package.profile.frameRateLimit, in: 30...120, step: 30)
                 Slider(value: $package.profile.resolutionScale, in: 0.5...1.0, step: 0.05) {

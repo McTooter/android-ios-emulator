@@ -5,6 +5,7 @@ import Combine
 final class RuntimeController: ObservableObject {
     @Published private(set) var states: [UUID: RuntimeState] = [:]
     @Published private(set) var activePackageID: UUID?
+    @Published private(set) var capabilities = RuntimeCapabilities.conservative
 
     private let store: PackageStore
     private let core = EmulatorCoreAdapter()
@@ -26,7 +27,7 @@ final class RuntimeController: ObservableObject {
             let apkURL = try store.apkURL(for: package)
             let result = core.start(
                 apkURL: apkURL,
-                profile: package.profile,
+                profile: package.profile.clamped(maxMemoryMB: capabilities.maxGuestMemoryMB),
                 storageDirectoryName: package.storageDirectoryName
             )
             states[package.id] = result
