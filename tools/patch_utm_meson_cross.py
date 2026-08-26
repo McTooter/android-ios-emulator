@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Patch the pinned UTM Meson cross-file generator for non-runnable iOS targets.
 
-Meson performs configure-time compiler sanity checks during a cross build. The
-arm64 iOS compiler output cannot execute on the macOS host, so the generated
-cross file needs a no-op executable wrapper. This wrapper is used only for
-configure-time run checks; it does not execute target binaries.
+Meson performs configure-time compiler sanity checks during a cross build.
+The arm64 iOS compiler output cannot execute on the macOS host, so the generated
+cross file needs a configure-time wrapper. The wrapper prints the numeric result
+expected by GLib’s probe and never executes target binaries.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import argparse
 from pathlib import Path
 
 BINARY_SECTION = '    echo "[binaries]" >> $cross\n'
-WRAPPER_LINE = '    echo "exe_wrapper = [\'/usr/bin/true\']" >> $cross\n'
+WRAPPER_LINE = '    echo "exe_wrapper = [\'/bin/sh\', \'-c\', \'printf 0\']" >> $cross\n'
 
 
 def main() -> int:

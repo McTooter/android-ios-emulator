@@ -77,7 +77,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: vendor/UTM/sysroot-iOS-arm64
-          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**') }}
+          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**', 'tools/patch_utm_meson_cross.py') }}
           restore-keys: |
             utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-
 
@@ -113,7 +113,7 @@ jobs:
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
         run: |
           python3 tools/patch_utm_meson_cross.py vendor/UTM/scripts/build_dependencies.sh
-          grep -F "exe_wrapper = ['/usr/bin/true']" vendor/UTM/scripts/build_dependencies.sh
+          grep -F "exe_wrapper = ['/bin/sh', '-c', 'printf 0']" vendor/UTM/scripts/build_dependencies.sh
 
       - name: Build UTM ARM64 dependencies
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
@@ -130,7 +130,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: vendor/UTM/sysroot-iOS-arm64
-          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**') }}
+          key: utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-${{ hashFiles('vendor/UTM/scripts/build_dependencies.sh', 'vendor/UTM/patches/**', 'tools/patch_utm_meson_cross.py') }}
 
       - name: Build unsigned UTM iOS archive
         working-directory: vendor/UTM
