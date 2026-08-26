@@ -12,6 +12,8 @@ concurrency:
 
 env:
   UTM_SUBMODULE_COMMIT: 8e4de50817e76a83d6840212311627a78dd4f8b2
+  UTM_SYSROOT_ARTIFACT_ID: 8927678456
+  UTM_SYSROOT_ARTIFACT_DIGEST: 37eedf9a42989af3e2526ddbf11c1281f12b295708c20169c46ca0063f014b0d
 
 jobs:
   build:
@@ -81,49 +83,23 @@ jobs:
           restore-keys: |
             utm-ios-arm64-${{ env.UTM_SUBMODULE_COMMIT }}-
 
-      - name: Install UTM build prerequisites
+      - name: Fetch matching upstream UTM sysroot
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
-        run: |
-          brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake
-          brew install llvm libclc spirv-tools spirv-llvm-translator libxcb libxrandr
-          echo "/opt/homebrew/opt/bison/bin:/usr/local/opt/bison/bin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix gettext)/bin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix glib-utils)/bin" >> "$GITHUB_PATH"
-          echo "$(brew --prefix libgpg-error)/bin" >> "$GITHUB_PATH"
-          python3 -m venv "$RUNNER_TEMP/utm-venv"
-          "$RUNNER_TEMP/utm-venv/bin/python" -m pip install --upgrade pip six pyparsing setuptools pyyaml distlib mako
-          echo "$RUNNER_TEMP/utm-venv/bin" >> "$GITHUB_PATH"
-
-      - name: Validate UTM dependency environment
-        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          command -v python3
-          python3 -c 'import six, pyparsing, setuptools, yaml, distlib, mako'
-          command -v bison
-          command -v msgfmt
-          command -v glib-mkenums
-          command -v glib-compile-resources
-          command -v gpg-error-config
-          command -v meson
-          command -v cmake
-
-      - name: Patch Meson iOS cross wrapper
-        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
-        run: |
-          python3 tools/patch_utm_meson_cross.py vendor/UTM/scripts/build_dependencies.sh
-          grep -F "exe_wrapper = ['/bin/sh', '-c', 'printf 0']" vendor/UTM/scripts/build_dependencies.sh
-
-      - name: Build UTM ARM64 dependencies
-        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
-        working-directory: vendor/UTM
-        run: |
-          set -o pipefail
-          ./scripts/build_dependencies.sh -p ios -a arm64 > "$RUNNER_TEMP/utm-dependencies.log" 2>&1 || {
-            tail -n 260 "$RUNNER_TEMP/utm-dependencies.log"
-            exit 1
-          }
+          mkdir -p "$RUNNER_TEMP/utm-sysroot-download"
+          gh api "repos/utmapp/UTM/actions/artifacts/${{ env.UTM_SYSROOT_ARTIFACT_ID }}/zip" \
+            > "$RUNNER_TEMP/utm-sysroot-download/artifact.zip"
+          printf '%s  %s\n' "${{ env.UTM_SYSROOT_ARTIFACT_DIGEST }}" \
+            "$RUNNER_TEMP/utm-sysroot-download/artifact.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/utm-sysroot-download/artifact.zip" \
+            -d "$RUNNER_TEMP/utm-sysroot-download/unpacked"
+          tar -xzf "$RUNNER_TEMP/utm-sysroot-download/unpacked/sysroot.tgz" \
+            -C vendor/UTM
+          test -d vendor/UTM/sysroot-iOS-arm64
+          test -f vendor/UTM/sysroot-iOS-arm64/bin/qemu-system-aarch64
 
       - name: Save UTM iOS ARM64 sysroot cache
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
