@@ -114,7 +114,7 @@ jobs:
           set -euxo pipefail
           flag='ASSETCATALOG_OTHER_FLAGS = "--enable-icon-stack-fallback-generation=disabled";'
           grep -F "$flag" UTM.xcodeproj/project.pbxproj
-          perl -0pi -e 's/^\\s*ASSETCATALOG_OTHER_FLAGS = "--enable-icon-stack-fallback-generation=disabled";\\n//mg' UTM.xcodeproj/project.pbxproj
+          perl -0pi -e 's/^[ \\t]*ASSETCATALOG_OTHER_FLAGS = "--enable-icon-stack-fallback-generation=disabled";\\r?\\n//mg' UTM.xcodeproj/project.pbxproj
           test "$(grep -F -c "$flag" UTM.xcodeproj/project.pbxproj || true)" -eq 0
 
       - name: Build unsigned UTM iOS archive
