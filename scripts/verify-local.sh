@@ -27,8 +27,9 @@ printf 'UTC: %s\n\n' "$(date -u +%FT%H:%M:%SZ)" | tee -a "$REPORT"
 
 command -v python3 >/dev/null || fail_check 'python3 is required'
 run_check 'Guest manifest JSON' python3 -m json.tool Config/guest-manifest.example.json
-run_check 'Python tool compilation' python3 -m py_compile tools/inspect_apk.py tools/qemu_args.py tools/test_guest_apk.py tools/validate_guest.py
+run_check 'Python tool compilation' python3 -m py_compile tools/inspect_apk.py tools/qemu_args.py tools/test_guest_apk.py tools/test_qemu_args.py tools/validate_guest.py
 rm -rf tools/__pycache__
+run_check 'QEMU generator unit tests' python3 -m unittest discover -s tools -p 'test_*.py'
 
 if command -v cmake >/dev/null; then
   run_check 'Native core configure' cmake -S Core -B Core/build -DCMAKE_BUILD_TYPE=Release

@@ -27,7 +27,14 @@ def bundle_file(bundle_dir: Path, name: str) -> str:
     return str((bundle_dir / name).resolve())
 
 
-def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration: str) -> list[str]:
+def generate_args(
+    manifest_path: Path,
+    memory_mib: int,
+    cpus: int,
+    acceleration: str,
+    adb_host_port: int = 5555,
+    fastboot_host_port: int = 5554,
+) -> list[str]:
     data = load_manifest(manifest_path)
     bundle_dir = manifest_path.parent.resolve()
 
@@ -91,10 +98,10 @@ def generate_args(manifest_path: Path, memory_mib: int, cpus: int, acceleration:
     if network.get("device") == "virtio-net" and network.get("mode", "user") == "user":
         args.extend([
             "-netdev",
-            "user,id=android-net,hostfwd=tcp:127.0.0.1:5555-:5555,hostfwd=tcp:127.0.0.1:5554-:5554",
-            "-device",
-            "virtio-net-pci,netdev=android-net",
+            f"user,id=android-net,hostfwd=tcp:127.0.0.1:{adb_host_port}-:5555,hostfwd=tcp:127.0.0.1:{fastboot_host_port}-:5554",
+            "-device", "virtio-net-pci,netdev=android-net",
         ])
+
 
     if acceleration == "tcg-threaded":
         args.extend(["-accel", "tcg,tb-size=1024,thread=multi"])
@@ -117,6 +124,8 @@ def main() -> int:
         default="default",
         help="Choose only the QEMU userspace acceleration argument; no privileged iPadOS setup is performed.",
     )
+    parser.add_argument("--adb-host-port", type=int, default=5555)
+    parser.add_argument("--fastboot-host-port", type=int, default=5554)
     parser.add_argument("--format", choices=("json", "shell"), default="json")
     args = parser.parse_args()
 
@@ -124,9 +133,19 @@ def main() -> int:
         parser.error("--memory-mib must be between 512 and 16384")
     if args.cpus < 1 or args.cpus > 8:
         parser.error("--cpus must be between 1 and 8")
+    for name, value in (("--adb-host-port", args.adb_host_port), ("--fastboot-host-port", args.fastboot_host_port)):
+        if value < 1024 or value > 65535:
+            parser.error(f"{name} must be between 1024 and 65535")
 
     try:
-        qemu_args = generate_args(args.manifest, args.memory_mib, args.cpus, args.acceleration)
+        qemu_args = generate_args(
+            args.manifest,
+            args.memory_mib,
+            args.cpus,
+            args.acceleration,
+            args.adb_host_port,
+            args.fastboot_host_port,
+        )
     except (OSError, ValueError, KeyError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

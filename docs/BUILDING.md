@@ -28,7 +28,9 @@ The current Swift UI is deliberately usable before the core exists: it imports `
 The guest manifest tooling also includes a deterministic, non-executing QEMU argument generator:
 
 ```sh
-python3 tools/qemu_args.py /path/to/guest/manifest.json --memory-mib 4096 --cpus 4 --acceleration tcg-threaded --format shell
+python3 tools/qemu_args.py /path/to/guest/manifest.json \
+  --memory-mib 4096 --cpus 4 --acceleration tcg-threaded \
+  --adb-host-port 5555 --fastboot-host-port 5554 --format shell
 ```
 
 It only emits arguments and never launches QEMU, downloads images, enables JIT, changes entitlements, or bypasses iPadOS security controls. Its current `virt` layout accepts the real UEFI/qcow2 form used by the public LineageOS `virtio_arm64only` UTM guest. The official LineageOS UTM guide requires ANGLE (OpenGL) for that guest; ANGLE (Metal) can leave the Android UI invisible after boot.
@@ -61,6 +63,6 @@ python3 tools/test_guest_apk.py test-apk/app/build/outputs/apk/debug/app-debug.a
   --package com.mctooter.androidruntimetest --serial 127.0.0.1:5555
 ```
 
-The harness waits for ADB, installs the APK, resolves its launcher activity, starts it, and checks for the package process. It fails rather than reporting success when the guest is offline or the process is absent.
+The harness waits for ADB, installs the APK, confirms the installed package path, resolves its explicit MAIN/LAUNCHER activity, starts it, and checks for the package process. It fails rather than reporting success when the guest is offline or the process is absent. The public LineageOS release documents that an offline guest may require booting LineageOS Recovery, opening Advanced, choosing Mount/unmount system, and selecting Enable ADB; the procedure is recorded in `docs/guest-adb-finding.md`.
 
 Do not copy proprietary Android system images or application assets into this repository without the appropriate rights. Do not alter entitlements or code-signing metadata as part of the build.
