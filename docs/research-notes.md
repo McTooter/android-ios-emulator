@@ -27,3 +27,11 @@ The project should therefore accept a user-supplied, legally obtained ARM64 gues
 UTM’s upstream `scripts/build_dependencies.sh` checks for Python modules `six`, `pyparsing`, `setuptools`, `yaml`, `distlib`, and `mako`; Homebrew tools including bison, pkg-config, gettext, glib-utils, libgpg-error, nasm, make, meson, cmake, llvm, spirv-llvm-translator, libxcb, and libxrandr; and Apple command-line tools such as xcrun, otool, and install_name_tool. Homebrew’s bison is keg-only on the GitHub macOS runner, so its bin directory must be placed ahead of the system path.
 
 The custom Swift/XcodeGen iPadOS target has passed in GitHub Actions. UTM’s ARM64 sysroot build is long-running and has required bounded logging because its verbose symlink output can exceed practical CI log limits. The current workflow run is being monitored at https://github.com/McTooter/android-ios-emulator/actions/runs/32879959382.
+
+## Recovery ADB and Boot-Image Findings (2026-08-26)
+
+AOSP documents that Android boot-image header version 4 uses a fixed 4096-byte page size and contains the kernel, ramdisk, and optional boot signature; the open-source LineageOS `unpack_bootimg.py` tool was used to inspect the public ARM64 userdebug recovery image: https://source.android.com/docs/core/architecture/bootloader/boot-image-header and https://github.com/LineageOS/android_system_tools_mkbootimg/blob/lineage-23.0/unpack_bootimg.py
+
+The public LineageOS recovery documentation states that `adbd` is enabled by default only for debuggable recovery builds, and that an offline or unauthorized host may require the Recovery UI’s **Advanced → Mount/unmount system → Enable ADB** action. It also documents host-key authorization and the conditions for unauthenticated ADB: https://github.com/LineageOS/android_bootable_recovery and https://github.com/jqssun/android-lineage-qemu/releases
+
+The local ARM64 userdebug recovery image boots far enough to start recovery `adbd`, but the host transport remains offline because this non-interactive probe did not complete the documented Recovery UI Enable ADB/authorization step. This is evidence about the test guest only; it is not APK execution proof.
