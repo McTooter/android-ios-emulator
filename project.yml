@@ -16,6 +16,7 @@ targets:
       - path: iPadApp
       - path: Core/EmulatorCore.cpp
       - path: Core/EmulatorCore.h
+      - path: iPadApp/GuestConfiguration.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.androidruntime

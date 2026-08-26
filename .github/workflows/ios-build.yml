@@ -59,7 +59,7 @@ jobs:
             AndroidRuntime-unsigned-payload.zip
 
   build-utm-milestone:
-    name: Build UTM/QEMU iOS milestone
+    name: Build integrated AndroidRuntime/UTM iOS archive
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -121,17 +121,28 @@ jobs:
           mv "$RUNNER_TEMP/UTM-project.pbxproj" UTM.xcodeproj/project.pbxproj
           test "$(grep -F -c "$flag" UTM.xcodeproj/project.pbxproj || true)" -eq 0
 
-      - name: Build unsigned UTM iOS archive
-        working-directory: vendor/UTM
-        run: ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o "$RUNNER_TEMP/UTM"
+      - name: Integrate AndroidRuntime shell into UTM iOS target
+        run: python3 tools/patch_utm_androidruntime.py
 
-      - name: Package UTM payload
+      - name: Build integrated unsigned AndroidRuntime iOS archive
+        working-directory: vendor/UTM
+        run: ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o "$RUNNER_TEMP/AndroidRuntime"
+
+      - name: Verify integrated archive payload
         run: |
-          APP_PATH="$(find "$RUNNER_TEMP/UTM.xcarchive" -type d -name '*.app' -print -quit)"
-          test -n "$APP_PATH"
-          mkdir -p "$RUNNER_TEMP/UTMPayload"
-          cp -R "$APP_PATH" "$RUNNER_TEMP/UTMPayload/"
-          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/UTMPayload" UTM-unsigned-payload.zip
+          set -euxo pipefail
+          APP_PATH="$RUNNER_TEMP/AndroidRuntime.xcarchive/Products/Applications/AndroidRuntime.app"
+          test -d "$APP_PATH"
+          test -f "$APP_PATH/AndroidRuntime"
+          find "$APP_PATH/Frameworks" -maxdepth 1 -name 'qemu-aarch64-softmmu.framework' -print -quit | grep -q .
+          test -d "$APP_PATH/qemu"
+
+      - name: Package integrated AndroidRuntime payload
+        run: |
+          set -euxo pipefail
+          mkdir -p "$RUNNER_TEMP/AndroidRuntimePayload"
+          cp -R "$RUNNER_TEMP/AndroidRuntime.xcarchive/Products/Applications/AndroidRuntime.app" "$RUNNER_TEMP/AndroidRuntimePayload/"
+          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/AndroidRuntimePayload" AndroidRuntime-UTM-unsigned-payload.zip
 
       - name: Upload UTM dependency log
         if: always()
@@ -141,10 +152,10 @@ jobs:
           if-no-files-found: ignore
           path: ${{ runner.temp }}/utm-dependencies.log
 
-      - name: Upload UTM milestone
+      - name: Upload integrated AndroidRuntime milestone
         uses: actions/upload-artifact@v4
         with:
-          name: UTM-QEMU-iOS-unsigned
+          name: AndroidRuntime-UTM-iOS-unsigned
           path: |
-            ${{ runner.temp }}/UTM.xcarchive
-            UTM-unsigned-payload.zip
+            ${{ runner.temp }}/AndroidRuntime.xcarchive
+            AndroidRuntime-UTM-unsigned-payload.zip

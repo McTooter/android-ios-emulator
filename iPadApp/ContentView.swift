@@ -4,19 +4,37 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @StateObject private var store: PackageStore
     @StateObject private var runtime: RuntimeController
+    @StateObject private var guestStore: GuestStore
     @State private var selectedID: AndroidPackage.ID?
     @State private var showingImporter = false
+    @State private var showingGuestImporter = false
     @State private var importError: String?
 
     init() {
         let packageStore = PackageStore()
+        let externalGuestStore = GuestStore()
         _store = StateObject(wrappedValue: packageStore)
-        _runtime = StateObject(wrappedValue: RuntimeController(store: packageStore))
+        _guestStore = StateObject(wrappedValue: externalGuestStore)
+        _runtime = StateObject(wrappedValue: RuntimeController(store: packageStore, guestStore: externalGuestStore))
     }
 
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedID) {
+                Section("Android guest") {
+                    Label(guestStore.statusMessage, systemImage: guestStore.guestURL == nil ? "externaldrive" : "checkmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(guestStore.guestURL == nil ? .secondary : .green)
+                    Button("Import LineageOS .utm guest") {
+                        showingGuestImporter = true
+                    }
+                    if guestStore.guestURL != nil {
+                        Button("Forget guest", role: .destructive) {
+                            guestStore.clear()
+                        }
+                    }
+                }
+
                 Section("Android library") {
                     if store.packages.isEmpty {
                         ContentUnavailableView(
@@ -54,6 +72,26 @@ struct ContentView: View {
             }
         } detail: {
             if let selectedID, let package = store.packages.first(where: { $0.id == selectedID }) {
+#if ANDROID_RUNTIME_UTM
+                if let session = runtime.activeSession, runtime.activePackageID == package.id {
+                    AndroidRuntimeGuestView(session: session)
+                } else {
+                    PackageDetailView(
+                        package: package,
+                        state: runtime.state(for: package),
+                        onUpdate: { store.update($0) },
+                        onApplyPreset: { preset in
+                            var updated = package
+                            updated.profile.apply(preset)
+                            store.update(updated)
+                        },
+                        capabilities: runtime.capabilities,
+                        onLaunch: { runtime.launch(package) },
+                        onPause: { runtime.pause(package) },
+                        onStop: { runtime.stop(package) }
+                    )
+                }
+#else
                 PackageDetailView(
                     package: package,
                     state: runtime.state(for: package),
@@ -68,6 +106,7 @@ struct ContentView: View {
                     onPause: { runtime.pause(package) },
                     onStop: { runtime.stop(package) }
                 )
+#endif
             } else {
                 ContentUnavailableView(
                     "Select an app",
@@ -81,6 +120,12 @@ struct ContentView: View {
             allowedContentTypes: [UTType(filenameExtension: "apk") ?? .data],
             allowsMultipleSelection: true,
             onCompletion: handleImport
+        )
+        .fileImporter(
+            isPresented: $showingGuestImporter,
+            allowedContentTypes: [UTType(filenameExtension: "utm") ?? .data],
+            allowsMultipleSelection: false,
+            onCompletion: handleGuestImport
         )
         .alert("Import failed", isPresented: Binding(
             get: { importError != nil },
@@ -105,6 +150,22 @@ struct ContentView: View {
                 } catch {
                     importError = error.localizedDescription
                 }
+            }
+        case .failure(let error):
+            if (error as NSError).code != NSUserCancelledError {
+                importError = error.localizedDescription
+            }
+        }
+    }
+
+    private func handleGuestImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            do {
+                try guestStore.importGuest(from: url)
+            } catch {
+                importError = error.localizedDescription
             }
         case .failure(let error):
             if (error as NSError).code != NSUserCancelledError {
