@@ -85,7 +85,7 @@ jobs:
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
         run: |
           brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake
-          brew install llvm libclc spirv-llvm-translator libxcb libxrandr
+          brew install llvm libclc spirv-tools spirv-llvm-translator libxcb libxrandr
           echo "/opt/homebrew/opt/bison/bin:/usr/local/opt/bison/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix gettext)/bin" >> "$GITHUB_PATH"
