@@ -70,7 +70,23 @@ def main() -> int:
         return fail(f"APK install failed: {(install.stdout + install.stderr).strip()}")
     print(f"installed={args.package}")
 
-    resolved = adb(args.serial, "shell", "cmd", "package", "resolve-activity", "--brief", args.package)
+    package_check = adb(args.serial, "shell", "cmd", "package", "path", args.package)
+    if package_check.returncode != 0 or args.package not in package_check.stdout:
+        return fail(f"installed package could not be resolved: {(package_check.stdout + package_check.stderr).strip()}")
+
+    resolved = adb(
+        args.serial,
+        "shell",
+        "cmd",
+        "package",
+        "resolve-activity",
+        "--brief",
+        "-a",
+        "android.intent.action.MAIN",
+        "-c",
+        "android.intent.category.LAUNCHER",
+        args.package,
+    )
     if resolved.returncode != 0:
         return fail(f"launcher resolution failed: {(resolved.stdout + resolved.stderr).strip()}")
     print(f"resolved_activity={(resolved.stdout + resolved.stderr).strip()}")
