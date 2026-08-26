@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Patch the pinned UTM Meson cross-file generator for non-runnable iOS targets.
+"""Patch UTM's iOS cross-build scripts for host-only configure checks.
 
-Meson performs configure-time compiler sanity checks during a cross build.
-The arm64 iOS compiler output cannot execute on the macOS host, so the generated
-cross file needs a configure-time wrapper. The wrapper prints the numeric result
-expected by GLib’s probe and never executes target binaries.
+The iOS target compiler cannot execute on the macOS host. UTM's dependency
+helper and QEMU's own configure script each generate a Meson cross file, so
+both generators need a configure-time wrapper. The wrapper prints the numeric
+probe result expected by GLib and never executes target binaries.
 """
 from __future__ import annotations
 
@@ -13,6 +13,22 @@ from pathlib import Path
 
 BINARY_SECTION = '    echo "[binaries]" >> $cross\n'
 WRAPPER_LINE = '    echo "exe_wrapper = [\'/bin/sh\', \'-c\', \'printf 0\']" >> $cross\n'
+QEMU_CONFIGURE_ANCHOR = '        ./configure --prefix="$PREFIX" --host="$CHOST" $@\n'
+QEMU_CONFIGURE_PATCH = """        if [ \"$NAME\" = \"qemu-10.0.12-utm\" ]; then
+            python3 - \"$DIR/configure\" <<'PY'
+from pathlib import Path
+
+configure = Path(__import__('sys').argv[1])
+text = configure.read_text(encoding='utf-8')
+marker = '  echo \"[properties]\" >> $cross\\n'
+wrapper = \"  echo \\\"exe_wrapper = ['/bin/sh', '-c', 'printf 0']\\\" >> $cross\\n\"
+if wrapper not in text:
+    if marker not in text:
+        raise SystemExit(f'QEMU Meson properties marker not found: {configure}')
+    configure.write_text(text.replace(marker, marker + wrapper, 1), encoding='utf-8')
+PY
+        fi
+"""
 
 
 def main() -> int:
@@ -21,11 +37,22 @@ def main() -> int:
     args = parser.parse_args()
     path = args.path
     text = path.read_text(encoding="utf-8")
-    if WRAPPER_LINE in text:
-        return 0
-    if BINARY_SECTION not in text:
-        raise SystemExit(f"expected Meson binaries section not found: {path}")
-    path.write_text(text.replace(BINARY_SECTION, BINARY_SECTION + WRAPPER_LINE, 1), encoding="utf-8")
+    changed = False
+
+    if WRAPPER_LINE not in text:
+        if BINARY_SECTION not in text:
+            raise SystemExit(f"expected Meson binaries section not found: {path}")
+        text = text.replace(BINARY_SECTION, BINARY_SECTION + WRAPPER_LINE, 1)
+        changed = True
+
+    if 'qemu-10.0.12-utm' not in text:
+        if QEMU_CONFIGURE_ANCHOR not in text:
+            raise SystemExit(f"expected generic configure anchor not found: {path}")
+        text = text.replace(QEMU_CONFIGURE_ANCHOR, QEMU_CONFIGURE_PATCH + QEMU_CONFIGURE_ANCHOR, 1)
+        changed = True
+
+    if changed:
+        path.write_text(text, encoding="utf-8")
     return 0
 
 
