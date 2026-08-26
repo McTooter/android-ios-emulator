@@ -26,11 +26,14 @@ The official LineageOS UTM guide states that this guest requires ANGLE (OpenGL) 
 
 ## Build and device status
 
-The custom unsigned iPadOS archive job succeeded in earlier GitHub Actions runs. The separate UTM/QEMU iOS archive job has not yet produced a verified archive because GitHub currently rejects macOS 15 and a separate short macOS 14 runner probe before any job step executes. GitHub authentication was refreshed and the repository is synchronized at commit `e8aa0c7`; the remaining Actions failure is hosted-runner allocation or account capacity, not authentication.
+The custom unsigned iPadOS archive job succeeded in earlier GitHub Actions runs. The separate UTM/QEMU iOS archive job has not yet produced a verified archive because GitHub currently rejects macOS 15 and a separate short macOS 14 runner probe before any job step executes. GitHub authentication was refreshed and the repository is synchronized at commit `e08314e`; the remaining Actions failure is hosted-runner allocation or account capacity, not authentication. The latest free-path commits use `[skip ci]` to avoid consuming or repeatedly requesting unavailable hosted runners.
 
-The repository also provides `scripts/verify-local.sh` for no-cost validation. It runs the native checks, builds and inspects the original APK when local Gradle/SDK tools are available, and can validate a user-supplied guest manifest without GitHub Actions.
+The repository also provides `scripts/verify-local.sh` for no-cost validation. On 2026-08-26 it passed the guest-manifest JSON check, Python compilation, QEMU generator unit tests, native C++ configure/build/smoke test, original APK build/inspection, real extracted guest-manifest validation, and QEMU argument generation. The ADB install/launch step is intentionally skipped unless a reachable guest is supplied.
 
-A real iPad test still requires a Mac/Xcode signing environment and the user’s own Apple development identity and provisioning profile. The project does not add JIT, alter entitlements, bypass code signing, jailbreak the device, or defeat iPadOS sandbox restrictions.
+The public userdebug recovery image was inspected and a test-only legacy-LZ4 repack was attempted. Recovery `adbd` started, but the headless Linux probe remained offline; the documented Recovery UI action **Advanced → Mount/unmount system → Enable ADB** and host-key/authorization conditions still need to be exercised interactively. This does not constitute APK execution proof.
+
+A real iPad test still requires a Mac/Xcode signing environment and the user’s own Apple development identity and provisioning profile.
+ The project does not add JIT, alter entitlements, bypass code signing, jailbreak the device, or defeat iPadOS sandbox restrictions.
 
 ## Not yet supported or proven
 
