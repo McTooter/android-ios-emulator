@@ -27,3 +27,10 @@ Guest validation milestone: the public `jqssun/android-lineage-qemu` release `v2
 
 
 The downloaded public release’s own build script confirms the `virtio_arm64only` UTM VM is produced from LineageOS 23.2 and is intended for ARM64-only hosts. A real Linux QEMU attempt reached the Android kernel, mounted the LineageOS partitions, formatted the blank metadata partition, loaded several modules, and then panicked while loading `virt_wifi.ko` in `dlkm_loader_mainline`. QEMU terminated after 90 seconds and ADB port 5555 never opened. This is the first actual guest-boot evidence, but it is a failed boot, not an APK execution result. The original release disk was not used directly after this attempt; future retries must use qcow2 overlays to avoid mutating downloaded input.
+
+
+## 2026-08-26 authentication recovery and current CI state
+
+The GitHub CLI initially reported both configured tokens invalid, causing HTTPS pushes to fail. Running `manus-config config load --search github` refreshed the enabled GitHub connector snapshot. `gh auth status` then reported the `McTooter` account active, and the four preserved local commits pushed successfully; `master` and `origin/master` now point to `51bc51b`.
+
+The push-triggered runs for commit `51bc51b` were `32922520019` (Android Test APK) and `32922519966` (iPadOS Build). Their jobs all completed in approximately three seconds with `runner_name` empty, zero steps, and no downloadable logs. Repository Actions permissions are enabled and allow all actions. This is a separate hosted-runner allocation or account-capacity problem, not a Git authentication problem. The billing endpoint returned 403 because the current token lacks the billing permission, so the owner must inspect Actions usage/spending limits in GitHub Settings or provide a self-hosted Mac runner for the UTM archive build.
