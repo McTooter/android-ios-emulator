@@ -8,7 +8,7 @@ The repository is a public, audited research prototype for an Android-on-iPad ar
 
 ## Confirmed implementation
 
-The SwiftUI shell supports multiple legally obtained APK imports, private app storage, catalog records, per-app runtime profiles, isolated directory identifiers, and launch/pause/stop controls. The portable C ABI and C++ implementation provide the lifecycle boundary for a future runtime backend and intentionally report that no Android runtime core is linked.
+The SwiftUI shell supports multiple legally obtained APK imports, private app storage, catalog records, per-app runtime profiles, isolated directory identifiers, and launch/pause/stop controls. It now also displays conservative JIT and memory-capability status, provides Balanced/Low-latency/Battery-saver presets, and clamps requested guest memory before passing it to the backend. These are transparent configuration and reporting features; they do not activate JIT or modify provisioning. The portable C ABI and C++ implementation provide the lifecycle boundary for a future runtime backend and intentionally report that no Android runtime core is linked.
 
 The guest tooling supports both a legacy kernel/initrd contract and the external UEFI/qcow2 ARM64 UTM bundle. Validation enforces ARM64, the `virt` machine, supported disk formats, and strict path containment. The QEMU argument generator emits a non-executing configuration with `max,pauth-impdef=on`, threaded TCG, UEFI pflash, VirtIO disks, VirtIO GPU/network, USB input, serial/RNG, and local ADB/fastboot forwards.
 
@@ -39,7 +39,7 @@ The iPadOS code does not add JIT activation, alter entitlements, bypass code sig
 
 ## Remaining gates
 
-The next useful engineering step is not another blind CI loop. A bounded UTM build attempt must first complete dependency compilation and produce a verifiable `.xcarchive`/payload. Separately, an interactive graphical guest test must make the public LineageOS guest show ADB as `device`; only then should the original test APK be installed and launched. After those gates, the project still needs the actual SwiftUI-to-UTM integration, display/input bridge, per-profile guest storage, and two-profile testing.
+The next useful engineering step is not another blind CI loop. The new settings layer is ready for a real backend, but the UTM build still must complete dependency compilation and produce a verifiable `.xcarchive`/payload. Separately, an interactive graphical guest test must make the public LineageOS guest show ADB as `device`; only then should the original test APK be installed and launched. After those gates, the project still needs the actual SwiftUI-to-UTM integration, display/input bridge, per-profile guest storage, capability reporting from the installed build, and two-profile testing.
 
 Universal arbitrary-APK compatibility is not expected. Google Play Services, DRM, ABI requirements, graphics behavior, permissions, server availability, and application-specific assumptions can prevent individual apps from working.
 
