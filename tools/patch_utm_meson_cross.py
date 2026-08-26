@@ -13,18 +13,21 @@ from pathlib import Path
 
 BINARY_SECTION = '    echo "[binaries]" >> $cross\n'
 WRAPPER_LINE = '    echo "exe_wrapper = [\'/bin/sh\', \'-c\', \'printf 0\']" >> $cross\n'
+QEMU_BINARY_SECTION = '  echo "[binaries]" >> $cross\n'
+QEMU_WRAPPER_LINE = '  echo "exe_wrapper = [\'/bin/sh\', \'-c\', \'printf 0\']" >> $cross\n'
 QEMU_CONFIGURE_ANCHOR = '        ./configure --prefix="$PREFIX" --host="$CHOST" $@\n'
+QEMU_HOOK_MARKER = '        if [ "$NAME" = "qemu-10.0.12-utm" ]; then\n'
 QEMU_CONFIGURE_PATCH = """        if [ \"$NAME\" = \"qemu-10.0.12-utm\" ]; then
             python3 - configure <<'PY'
 from pathlib import Path
 
 configure = Path(__import__('sys').argv[1])
 text = configure.read_text(encoding='utf-8')
-marker = '  echo \"[properties]\" >> $cross\\n'
+marker = '  echo \"[binaries]\" >> $cross\\n'
 wrapper = \"  echo \\\"exe_wrapper = ['/bin/sh', '-c', 'printf 0']\\\" >> $cross\\n\"
 if wrapper not in text:
     if marker not in text:
-        raise SystemExit(f'QEMU Meson properties marker not found: {configure}')
+        raise SystemExit(f'QEMU Meson binaries marker not found: {configure}')
     configure.write_text(text.replace(marker, marker + wrapper, 1), encoding='utf-8')
 PY
         fi
@@ -45,7 +48,7 @@ def main() -> int:
         text = text.replace(BINARY_SECTION, BINARY_SECTION + WRAPPER_LINE, 1)
         changed = True
 
-    if 'qemu-10.0.12-utm' not in text:
+    if QEMU_HOOK_MARKER not in text:
         if QEMU_CONFIGURE_ANCHOR not in text:
             raise SystemExit(f"expected generic configure anchor not found: {path}")
         text = text.replace(QEMU_CONFIGURE_ANCHOR, QEMU_CONFIGURE_PATCH + QEMU_CONFIGURE_ANCHOR, 1)
