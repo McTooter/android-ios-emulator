@@ -26,7 +26,9 @@ The official LineageOS UTM guide states that this guest requires ANGLE (OpenGL) 
 
 ## Build and device status
 
-The custom unsigned iPadOS archive job has succeeded in earlier GitHub Actions runs. The separate UTM/QEMU iOS archive job has not yet produced a verified archive because GitHub rejected macOS 15 and a separate short macOS 14 runner probe before any job step executed. The current GitHub CLI credentials have also expired, so the latest local QEMU-generator commit is two commits ahead of the remote repository and cannot be pushed until GitHub access is reauthorized.
+The custom unsigned iPadOS archive job succeeded in earlier GitHub Actions runs. The separate UTM/QEMU iOS archive job has not yet produced a verified archive because GitHub currently rejects macOS 15 and a separate short macOS 14 runner probe before any job step executes. GitHub authentication was refreshed and the repository is synchronized at commit `e8aa0c7`; the remaining Actions failure is hosted-runner allocation or account capacity, not authentication.
+
+The repository also provides `scripts/verify-local.sh` for no-cost validation. It runs the native checks, builds and inspects the original APK when local Gradle/SDK tools are available, and can validate a user-supplied guest manifest without GitHub Actions.
 
 A real iPad test still requires a Mac/Xcode signing environment and the user’s own Apple development identity and provisioning profile. The project does not add JIT, alter entitlements, bypass code signing, jailbreak the device, or defeat iPadOS sandbox restrictions.
 

@@ -1,4 +1,5 @@
 Core/build/
+build/
 test-apk/.gradle/
 test-apk/app/build/
 test-apk/local.properties
@@ -12,3 +13,5 @@ DerivedData/
 *.ipa
 *.xcarchive
 vendor/UTM/.git/
+docs/status-presentation/
+docs/status-presentation.md
