@@ -1,8 +1,14 @@
 Core/build/
+test-apk/.gradle/
+test-apk/app/build/
+test-apk/local.properties
+tools/__pycache__/
+.pytest_cache/
+*.log
 .DS_Store
 *.xcuserstate
 xcuserdata/
 DerivedData/
 *.ipa
 *.xcarchive
-reference/UTM/.git/
+vendor/UTM/.git/
