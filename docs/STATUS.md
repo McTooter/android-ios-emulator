@@ -4,7 +4,7 @@
 
 ## Executive status
 
-The repository is a public, audited research prototype for an Android-on-iPad architecture. The SwiftUI iPadOS library shell builds successfully in public macOS CI, and the portable C++ lifecycle boundary, guest-manifest validator, QEMU argument generator, and original test APK pass local checks. The project does **not** yet provide a working Android emulator IPA: the current iPad adapter is a transparent stub, no UTM/QEMU iOS archive has been verified, Android guest ADB is not reachable, and no APK has been installed or launched inside a guest.
+The repository is a public, audited research prototype for an Android-on-iPad architecture. The SwiftUI iPadOS library shell and a separate upstream UTM/QEMU iOS archive now build successfully in public macOS CI, and the portable C++ lifecycle boundary, guest-manifest validator, QEMU argument generator, and original test APK pass local checks. The project does **not** yet provide a combined working Android emulator IPA: the current iPad adapter is a transparent stub, the UTM archive is generic upstream UTM rather than this shell’s linked backend, Android guest ADB is not reachable, and no APK has been installed or launched inside a guest.
 
 ## Confirmed implementation
 
@@ -21,15 +21,17 @@ The guest tooling supports both a legacy kernel/initrd contract and the external
 | Guest manifest | **Pass** | External public LineageOS UTM bundle validates as ARM64/UEFI/qcow2 and remains outside the repository. |
 | QEMU configuration | **Pass** | Unit tests and deterministic argument generation pass; generation does not start QEMU. |
 | SwiftUI iPad shell | **Pass in hosted CI** | Public workflow build job produced an unsigned custom shell archive/payload in run `32946819499`; this is not the UTM emulator. |
-| UTM/QEMU iOS archive | **Not proven** | Dependency builds successively exposed Meson, GLib, QEMU, libclc, and SPIRV-Tools issues. The latest targeted run was stopped after a bounded window before producing an artifact. |
+| UTM/QEMU iOS archive | **Pass as separate generic artifact** | Run `32960303538` built and uploaded `UTM-QEMU-iOS-unsigned` after using the matching public sysroot, current Xcode selection, and the runtime asset compatibility patch. It is upstream UTM and is not linked to the custom APK library shell. |
 | Android guest boot | **Partial** | Linux QEMU with copy-on-write overlays reached Android framework services and boot animation using `max,pauth-impdef=on`; this is not iPadOS execution proof. |
 | ADB/APK execution | **Fail/not reachable** | `adb devices` showed no device; the harness failed with `127.0.0.1:5555` connection refused. No install, launcher resolution, process check, or APK launch completed. |
 
 ## Latest build state
 
-The repository is synchronized at commit `9fdf5d9` (`Install SPIRV-Tools for Mesa`) on the public `master` branch. The latest workflow was run `32950772458`. Its custom iPad shell job completed successfully; its UTM dependency job was canceled after the promised bounded monitoring window and produced no UTM milestone artifact. The preceding completed run `32946819499` failed at Mesa target configuration because `SPIRV-Tools` was absent; the workflow now installs the official Homebrew `spirv-tools` formula in addition to `libclc`.
+The repository’s latest synchronized code commit is `6b7b107`, with this status correction committed afterward. The decisive workflow was run `32960303538`: both the custom shell job and the UTM/QEMU iOS milestone job completed successfully. It uploaded `AndroidRuntime-iOS-unsigned` and `UTM-QEMU-iOS-unsigned` artifacts. The UTM artifact is a separate generic UTM build, not a combined AndroidRuntime app. The faster route uses the matching upstream UTM sysroot artifact `8927678456` (source revision `8e4de50817e76a83d6840212311627a78dd4f8b2`) with verified digest `37eedf9a42989af3e2526ddbf11c1281f12b295708c20169c46ca0063f014b0d`.
 
-The public CI route remains free, but hosted macOS dependency builds are long-running and are no longer being left to run unattended. A successful custom shell archive must not be described as a working Android emulator or as a generic UTM IPA. The custom shell and UTM build are separate products: the former has the multi-APK library UI, while the latter is upstream UTM and does not yet contain the project’s shell integration.
+Artifact links: [custom shell artifact](https://github.com/McTooter/android-ios-emulator/actions/runs/32960303538/artifacts/9603608457) and [UTM/QEMU artifact](https://github.com/McTooter/android-ios-emulator/actions/runs/32960303538/artifacts/9603726828).
+
+The public CI route remains free. A successful custom shell archive must not be described as a working Android emulator or as a generic UTM IPA. The custom shell and UTM archive are separate products: the former has the multi-APK library UI, while the latter can host virtual machines but does not yet contain this project’s shell integration or a verified Android guest/APK run.
 
 ## Guest and legal boundaries
 
