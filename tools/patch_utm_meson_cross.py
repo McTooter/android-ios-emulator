@@ -15,7 +15,7 @@ BINARY_SECTION = '    echo "[binaries]" >> $cross\n'
 WRAPPER_LINE = '    echo "exe_wrapper = [\'/bin/sh\', \'-c\', \'printf 0\']" >> $cross\n'
 QEMU_CONFIGURE_ANCHOR = '        ./configure --prefix="$PREFIX" --host="$CHOST" $@\n'
 QEMU_CONFIGURE_PATCH = """        if [ \"$NAME\" = \"qemu-10.0.12-utm\" ]; then
-            python3 - \"$DIR/configure\" <<'PY'
+            python3 - configure <<'PY'
 from pathlib import Path
 
 configure = Path(__import__('sys').argv[1])
