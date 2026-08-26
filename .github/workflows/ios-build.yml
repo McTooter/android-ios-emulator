@@ -109,6 +109,12 @@ jobs:
           command -v meson
           command -v cmake
 
+      - name: Patch Meson iOS cross wrapper
+        if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
+        run: |
+          python3 tools/patch_utm_meson_cross.py vendor/UTM/scripts/build_dependencies.sh
+          grep -F "exe_wrapper = ['/usr/bin/true']" vendor/UTM/scripts/build_dependencies.sh
+
       - name: Build UTM ARM64 dependencies
         if: steps.cache-utm-sysroot.outputs.cache-matched-key == ''
         working-directory: vendor/UTM
