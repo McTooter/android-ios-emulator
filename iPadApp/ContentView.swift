@@ -59,7 +59,7 @@ struct ContentView: View {
                     state: runtime.state(for: package),
                     onUpdate: { store.update($0) },
                     onApplyPreset: { preset in
-                        var updated = $0
+                        var updated = package
                         updated.profile.apply(preset)
                         store.update(updated)
                     },
@@ -165,7 +165,7 @@ private struct PackageDetailView: View {
     @State private var package: AndroidPackage
     let state: RuntimeState
     let onUpdate: (AndroidPackage) -> Void
-    let onApplyPreset: (AndroidPackage) -> Void
+    let onApplyPreset: (PerformancePreset) -> Void
     let capabilities: RuntimeCapabilities
     let onLaunch: () -> Void
     let onPause: () -> Void
@@ -175,7 +175,7 @@ private struct PackageDetailView: View {
         package: AndroidPackage,
         state: RuntimeState,
         onUpdate: @escaping (AndroidPackage) -> Void,
-        onApplyPreset: @escaping (AndroidPackage) -> Void,
+        onApplyPreset: @escaping (PerformancePreset) -> Void,
         capabilities: RuntimeCapabilities,
         onLaunch: @escaping () -> Void,
         onPause: @escaping () -> Void,
@@ -215,7 +215,7 @@ private struct PackageDetailView: View {
                     set: { preset in
                         guard preset != .custom else { return }
                         package.profile.apply(preset)
-                        onApplyPreset(package)
+                        onApplyPreset(preset)
                     }
                 )) {
                     ForEach(PerformancePreset.allCases) { preset in
