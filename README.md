@@ -4,7 +4,7 @@ A research scaffold for a developer-signed iPadOS app that presents a library of
 
 ## Current status
 
-This repository contains the **multi-app library and runtime integration boundary** only. It does not yet contain an Android guest image, ART, QEMU, a graphics translation implementation, or an APK execution engine. Consequently, it is not currently capable of running APKs. Those components require a Mac with Xcode and substantial native systems development.
+This repository contains the **multi-app library and runtime integration boundary** plus guest-validation tooling. It is not currently capable of running APKs on iPadOS: the iPad adapter is still a transparent stub, the UTM/QEMU iOS archive has not been verified, and Android guest ADB/APK execution remains unproven. The repository does not include guest images or proprietary applications.
 
 The scaffold is designed around the architecture used by projects such as [UTM](https://github.com/utmapp/UTM): a native iPadOS shell controls a separate emulator core through a narrow interface. The shell can import APK files, display metadata, maintain per-app profiles, and report runtime state. The core interface is intentionally replaceable so a licensed QEMU/AOSP-based implementation can be integrated later.
 
@@ -32,7 +32,7 @@ A real iPadOS build requires macOS, Xcode, an Apple signing identity, and a conn
 
 ## Repository and first functional milestone
 
-The private GitHub repository is available at https://github.com/McTooter/android-ios-emulator. It tracks UTM as an upstream submodule under `vendor/UTM` and includes a macOS GitHub Actions workflow. The `build-utm-milestone` job follows UTM’s documented dependency and iOS archive build sequence and uploads an unsigned UTM/QEMU iOS payload. This is the first functional emulator milestone; it is not yet the Android APK runtime.
+The public GitHub repository is available at https://github.com/McTooter/android-ios-emulator. It tracks UTM as an upstream submodule under `vendor/UTM` and includes a macOS GitHub Actions workflow. The custom shell build job succeeds and produces an unsigned shell payload; the separate UTM dependency/archive job remains unverified. The shell payload is not a generic UTM IPA and neither artifact should be called a working Android APK runtime.
 
 Run `scripts/build-utm-ios.sh` on a Mac with Xcode to perform the same UTM build locally. The resulting archive or payload must be signed with the user’s own Apple development identity before installation. The repository’s custom SwiftUI target remains the multi-APK library shell that will later host the Android-specific guest integration.
 
@@ -56,7 +56,7 @@ The generator models either the legacy kernel/initrd form or the real UEFI/qcow2
 
 The guest has now been statically validated and partially boot-tested under Linux QEMU: with UEFI, `-cpu max`, and copy-on-write disks it reached Android framework initialization and boot animation without the earlier kernel panic. ADB remained offline before the bounded test ended, so no package-manager install or APK launch has been demonstrated.
 
-The repository’s macOS workflow now caches the exact `sysroot-iOS-arm64` output and retains the dependency log. As of 2026-08-25, GitHub rejects both the UTM build and a separate ten-second macOS 14 runner probe before any step starts, with no runner name or downloadable log. This is a hosted-runner allocation limitation, not evidence that UTM or Android has built successfully; a Mac with Xcode remains the reliable path for the next archive test.
+The macOS workflow caches the exact `sysroot-iOS-arm64` output and retains dependency logs on failure. Public hosted macOS runners do execute the jobs, and the custom shell build succeeds. The UTM dependency build has reached real Mesa/QEMU configuration but remains long-running and has successively exposed concrete dependency/configuration issues; the latest run was canceled after a bounded window rather than being left unattended. A Mac with Xcode remains the most predictable path for a complete UTM archive build, but the user currently has no Mac.
 
 ## Next engineering milestones
 

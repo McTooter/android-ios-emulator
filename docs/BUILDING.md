@@ -37,7 +37,7 @@ It only emits arguments and never launches QEMU, downloads images, enables JIT, 
 
 A Linux QEMU test with UEFI, `-cpu max`, TCG, and copy-on-write disks reached Android framework initialization and boot animation without the earlier `virt_wifi.ko` panic. The forwarded ADB endpoint stayed offline before cleanup, so this is not yet a package-install or APK-launch test.
 
-The macOS workflow now caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. GitHub currently rejects both the UTM job and a separate short macOS 14 runner probe before any step executes, with no runner name or downloadable log. This prevents hosted archive verification at present; it is an account/runner-capacity problem rather than a source-code failure. No paid service is required for the local checks below.
+The macOS workflow caches the exact `vendor/UTM/sysroot-iOS-arm64` directory and uploads the dependency log on failure. Public hosted macOS runners do execute the jobs, and the custom SwiftUI shell archive job succeeds. The UTM dependency job has reached real Mesa/QEMU configuration but is long-running; successive bounded runs exposed concrete Meson, GLib, QEMU, libclc, and SPIRV-Tools issues. The latest run was canceled after a hard time window and did not produce a UTM archive. No paid service is required for the local checks below.
 
 Run the no-cost local verification wrapper from the repository root. It runs the native checks, builds and inspects the original test APK when Gradle and an Android SDK are available, and accepts an optional guest manifest. It never launches a guest or changes iPadOS security settings:
 

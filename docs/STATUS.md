@@ -1,56 +1,62 @@
 # Prototype Status
 
-## Confirmed in the repository
+**Updated:** 2026-08-26
 
-The project contains a SwiftUI iPadOS library shell for multiple legally obtained APK files. It supports multi-file import, private APK storage, per-app profile records, isolated storage-directory identifiers, launch/pause/stop controls, and configurable memory, CPU-thread, frame-rate, resolution, graphics-backend, and execution-mode settings.
+## Executive status
 
-The portable C ABI and C++ implementation provide a stable lifecycle boundary for a future emulator backend. The current iPad adapter is intentionally transparent: it reports that the Android runtime core is not linked and does not claim to execute APKs. A host-side `test_guest_apk.py` harness now exists for the later install, launcher-resolution, and process-observation test once ADB is reachable.
+The repository is a public, audited research prototype for an Android-on-iPad architecture. The SwiftUI iPadOS library shell builds successfully in public macOS CI, and the portable C++ lifecycle boundary, guest-manifest validator, QEMU argument generator, and original test APK pass local checks. The project does **not** yet provide a working Android emulator IPA: the current iPad adapter is a transparent stub, no UTM/QEMU iOS archive has been verified, Android guest ADB is not reachable, and no APK has been installed or launched inside a guest.
 
-The guest manifest and QEMU argument tools now support both the earlier kernel/initrd layout and the real UEFI/qcow2 UTM layout used by the public ARM64-only LineageOS QEMU project. Generated arguments include the documented `virt` machine, `max,pauth-impdef=on` CPU model, threaded TCG option, UEFI pflash, VirtIO disks, VirtIO GPU/network, USB input, VirtIO serial/RNG, and local TCP forwards for ADB and fastboot.
+## Confirmed implementation
 
-## Verified locally
+The SwiftUI shell supports multiple legally obtained APK imports, private app storage, catalog records, per-app runtime profiles, isolated directory identifiers, and launch/pause/stop controls. The portable C ABI and C++ implementation provide the lifecycle boundary for a future runtime backend and intentionally report that no Android runtime core is linked.
 
-The native C++ core and lifecycle smoke test build successfully with CMake and Clang:
+The guest tooling supports both a legacy kernel/initrd contract and the external UEFI/qcow2 ARM64 UTM bundle. Validation enforces ARM64, the `virt` machine, supported disk formats, and strict path containment. The QEMU argument generator emits a non-executing configuration with `max,pauth-impdef=on`, threaded TCG, UEFI pflash, VirtIO disks, VirtIO GPU/network, USB input, serial/RNG, and local ADB/fastboot forwards.
 
-```text
-core smoke test passed: Stub only: link a licensed Android/QEMU runtime backend
-```
+## Verification record
 
-The original project test APK builds with Gradle 8.7 and Android SDK 35. Static inspection reports package `com.mctooter.androidruntimetest`, label `AndroidRuntime Test`, launcher activity `com.mctooter.androidruntimetest.MainActivity`, two DEX files, no native libraries, and compatibility with the initial arm64 target. Its current SHA-256 is `87c42dcd87cfebc417f73bc5fb1e4a780219efe9b0877d15fd666581b051fa30`.
+| Area | Result | Evidence |
+| --- | --- | --- |
+| Native C++ core | **Pass** | CMake configure/build and lifecycle smoke test pass; smoke test identifies the backend as a stub. |
+| Original Android test APK | **Pass** | Gradle 8.7 and Android SDK 35 build; package `com.mctooter.androidruntimetest`; no native libraries; arm64-compatible; current rebuilt artifact is local only. |
+| Guest manifest | **Pass** | External public LineageOS UTM bundle validates as ARM64/UEFI/qcow2 and remains outside the repository. |
+| QEMU configuration | **Pass** | Unit tests and deterministic argument generation pass; generation does not start QEMU. |
+| SwiftUI iPad shell | **Pass in hosted CI** | Public workflow build job produced an unsigned custom shell archive/payload in run `32946819499`; this is not the UTM emulator. |
+| UTM/QEMU iOS archive | **Not proven** | Dependency builds successively exposed Meson, GLib, QEMU, libclc, and SPIRV-Tools issues. The latest targeted run was stopped after a bounded window before producing an artifact. |
+| Android guest boot | **Partial** | Linux QEMU with copy-on-write overlays reached Android framework services and boot animation using `max,pauth-impdef=on`; this is not iPadOS execution proof. |
+| ADB/APK execution | **Fail/not reachable** | `adb devices` showed no device; the harness failed with `127.0.0.1:5555` connection refused. No install, launcher resolution, process check, or APK launch completed. |
 
-The public `jqssun/android-lineage-qemu` release `v2026.08.22` was downloaded only as an external, uncommitted guest input. Its ARM64-only UTM archive contains an Apple UTM bundle with UEFI variables, a 5 GiB virtual `vda.qcow2`, a sparse 16 GiB `vdb.qcow2`, and a QEMU configuration using the `virt` machine, AArch64, two CPUs, 2048 MiB RAM, and VirtIO devices. The archive SHA-256 is `ed7ec8030d094597d40371bc02ac66f5e4fff532bf70e6af50c108657dde2c00`.
+## Latest build state
 
-A real Linux QEMU run using copy-on-write overlays and `-cpu max` reached Android framework initialization, `system_server`, graphics-service startup, `artd`, and boot animation without the first attempt’s `virt_wifi.ko` kernel panic. The first attempt with a Cortex-A72 CPU did panic while loading `virt_wifi.ko`; the supported `max,pauth-impdef=on` configuration avoided that panic. The guest’s forwarded ADB endpoint remained offline or unavailable before cleanup, so no package-manager install or APK launch has been verified.
+The repository is synchronized at commit `9fdf5d9` (`Install SPIRV-Tools for Mesa`) on the public `master` branch. The latest workflow was run `32950772458`. Its custom iPad shell job completed successfully; its UTM dependency job was canceled after the promised bounded monitoring window and produced no UTM milestone artifact. The preceding completed run `32946819499` failed at Mesa target configuration because `SPIRV-Tools` was absent; the workflow now installs the official Homebrew `spirv-tools` formula in addition to `libclc`.
 
-The official LineageOS UTM guide states that this guest requires ANGLE (OpenGL) for visible Android UI; ANGLE (Metal) may leave the UI invisible after boot [6]. The example manifest therefore uses `angle-opengl`. This is a guest-specific setting and does not mean the iPad Metal rendering bridge is complete.
+The public CI route remains free, but hosted macOS dependency builds are long-running and are no longer being left to run unattended. A successful custom shell archive must not be described as a working Android emulator or as a generic UTM IPA. The custom shell and UTM build are separate products: the former has the multi-APK library UI, while the latter is upstream UTM and does not yet contain the project’s shell integration.
 
-## Build and device status
+## Guest and legal boundaries
 
-The custom unsigned iPadOS archive job succeeded in earlier GitHub Actions runs. The separate UTM/QEMU iOS archive job has not yet produced a verified archive because GitHub currently rejects macOS 15 and a separate short macOS 14 runner probe before any job step executes. GitHub authentication was refreshed and the repository is synchronized at commit `e08314e`; the remaining Actions failure is hosted-runner allocation or account capacity, not authentication. The latest free-path commits use `[skip ci]` to avoid consuming or repeatedly requesting unavailable hosted runners.
+The external ARM64 LineageOS UTM release used for research was downloaded as an uncommitted local input. Its UEFI variables and qcow2 disks are not included in this repository. The project’s original test APK is lawful project-owned smoke-test content; proprietary APKs, game assets, unauthorized downloads, and system images are not included.
 
-The repository also provides `scripts/verify-local.sh` for no-cost validation. On 2026-08-26 it passed the guest-manifest JSON check, Python compilation, QEMU generator unit tests, native C++ configure/build/smoke test, original APK build/inspection, real extracted guest-manifest validation, and QEMU argument generation. The ADB install/launch step is intentionally skipped unless a reachable guest is supplied.
+The iPadOS code does not add JIT activation, alter entitlements, bypass code signing, jailbreak devices, defeat sandbox restrictions, or provide unauthorized acquisition or signing instructions. SideStore can install a user-signed IPA, but it cannot compile this source or turn an unsigned archive into a working signed application by itself. A real device test still requires an appropriately signed build and an iPad-side input/rendering check.
 
-The public userdebug recovery image was inspected and a test-only legacy-LZ4 repack was attempted. Recovery `adbd` started, but the headless Linux probe remained offline; the documented Recovery UI action **Advanced → Mount/unmount system → Enable ADB** and host-key/authorization conditions still need to be exercised interactively. This does not constitute APK execution proof.
+## Remaining gates
 
-A real iPad test still requires a Mac/Xcode signing environment and the user’s own Apple development identity and provisioning profile.
- The project does not add JIT, alter entitlements, bypass code signing, jailbreak the device, or defeat iPadOS sandbox restrictions.
+The next useful engineering step is not another blind CI loop. A bounded UTM build attempt must first complete dependency compilation and produce a verifiable `.xcarchive`/payload. Separately, an interactive graphical guest test must make the public LineageOS guest show ADB as `device`; only then should the original test APK be installed and launched. After those gates, the project still needs the actual SwiftUI-to-UTM integration, display/input bridge, per-profile guest storage, and two-profile testing.
 
-## Not yet supported or proven
-
-The iPad app does not currently boot an Android guest, install an APK through Android Package Manager, render Android UI, or launch an Android application. The Linux QEMU boot evidence is useful backend validation but is not proof that the iPadOS UTM build or the SwiftUI app works on the iPad. Universal arbitrary-APK compatibility is not expected: Google Play Services, DRM, server shutdown, ABI requirements, graphics behavior, permissions, and app-specific assumptions can prevent individual apps from working. Proprietary APKs and game assets must be legally obtained by the user and are not included.
+Universal arbitrary-APK compatibility is not expected. Google Play Services, DRM, ABI requirements, graphics behavior, permissions, server availability, and application-specific assumptions can prevent individual apps from working.
 
 ## References
 
 [1]: https://support.apple.com/en-us/111887 "iPad Air (5th generation) - Tech Specs"
 
-[2]: https://developer.apple.com/metal/ "Metal Overview"
+[2]: https://github.com/utmapp/UTM "UTM source repository"
 
-[3]: https://github.com/utmapp/UTM "UTM source repository"
+[3]: https://docs.getutm.app/installation/ios/ "UTM iOS documentation"
 
-[4]: https://docs.getutm.app/installation/ios/ "UTM iOS documentation"
+[4]: https://support.apple.com/en-sg/guide/security/sec15bfe098e/web "Security of runtime process in iOS, iPadOS and visionOS"
 
-[5]: https://support.apple.com/en-sg/guide/security/sec15bfe098e/web "Security of runtime process in iOS, iPadOS and visionOS"
+[5]: https://wiki.lineageos.org/utm-vm-on-apple-silicon-mac "LineageOS UTM guide"
 
-[6]: https://wiki.lineageos.org/utm-vm-on-apple-silicon-mac "Building and installing for UTM virtual machine on Apple Silicon Mac"
+[6]: https://github.com/jqssun/android-lineage-qemu "LineageOS for QEMU Virtual Machines"
 
-[7]: https://github.com/jqssun/android-lineage-qemu "LineageOS for QEMU Virtual Machines"
+[7]: https://formulae.brew.sh/formula/libclc "Homebrew libclc formula"
+
+[8]: https://formulae.brew.sh/formula/spirv-tools "Homebrew spirv-tools formula"
